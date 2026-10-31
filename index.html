@@ -63,6 +63,8 @@ button,input,textarea{font:inherit;color:inherit}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field label{font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
 .field input{min-height:50px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.35);width:100%;font-size:18px}
+.field select{min-height:50px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#0b1020;color:var(--ink);width:100%;font-size:18px}
+.field select:focus{border-color:var(--p1);outline:none;box-shadow:0 0 0 3px rgba(46,230,255,.2)}
 .field input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(46,230,255,.2)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:460px){.row2{grid-template-columns:1fr}}
@@ -494,7 +496,7 @@ function save(){ mem=state; try{ localStorage.setItem(KEY,JSON.stringify(state))
 var state=load();
 var confirming=false, announced={}, resetAsk=(location.hash==='#reset');
 var CLASSES=[{l:'1 Beryl',f:1},{l:'1 Ruby',f:1},{l:'2 Amethyst',f:2},{l:'2 Lazuli',f:2},{l:'2 Pearl',f:2}];
-var nameMsg='', checking=false;
+var nameMsg='', checking=false, roster={}, rosterSt='';
 
 /* ---------- Helpers ---------- */
 function $(id){ return document.getElementById(id); }
@@ -631,7 +633,7 @@ function homeHTML(){
   }
   var h='<header class="hero"><p class="eyebrow" style="--a:var(--cyan)">PDPR &middot; English &middot; Forms 1 and 2</p>' +
     '<h1>Digital Note</h1>' +
-    '<p class="sub">Read each part, answer the questions and click DONE to open the next part. '+(w.ok?'Your note is ready.':'Choose your class, then type your name.')+'</p></header>';
+    '<p class="sub">Read each part, answer the questions and click DONE to open the next part. '+(w.ok?'Your note is ready.':'Choose your class, then choose your name.')+'</p></header>';
   if(w.ok){
     var started=false; [1,2].forEach(function(f){ [1,2].forEach(function(d){ if(D(f,d).unlocked) started=true; }); });
     h+='<section class="panel stack" style="--a:var(--violet);--b:var(--cyan)"><span class="eyebrow">Signed in</span>' +
@@ -642,15 +644,35 @@ function homeHTML(){
     h+='<section class="panel stack" style="--a:var(--violet);--b:var(--cyan)"><span class="eyebrow">Step 1 &middot; Your class</span>' +
       group(1)+group(2)+'</section>';
     if(w.cls){
-      h+='<section class="panel stack" style="--a:var(--cyan);--b:var(--mag)"><span class="eyebrow">Step 2 &middot; Your name</span>' +
-        '<div class="field"><label for="nm">Full name ('+esc(w.cls)+')</label><input id="nm" autocomplete="off" maxlength="60" placeholder="Type your full name" value="'+esc(w.name)+'"></div>' +
-        '<p class="note">Type your name as it is in your class list.</p>' +
+      var names=roster[w.cls], fld;
+      if(names){
+        fld='<div class="field"><label for="nm">Select your name ('+esc(w.cls)+')</label><select id="nm"><option value="">Choose your name</option>';
+        names.forEach(function(n){ fld+='<option value="'+esc(n)+'"'+(w.name===n?' selected':'')+'>'+esc(n)+'</option>'; });
+        fld+='</select></div><p class="note">Cannot find your name? Check that you chose the right class, or tell your teacher.</p>';
+      } else if(rosterSt==='loading'){
+        fld='<p class="note">Loading the name list...</p>';
+      } else {
+        fld='<div class="field"><label for="nm">Full name ('+esc(w.cls)+')</label><input id="nm" autocomplete="off" maxlength="60" placeholder="Type your full name" value="'+esc(w.name)+'"></div>' +
+          '<p class="note">The name list did not load. Type your full name as it is in your class list.</p>' +
+          (SHEET_URL?'<div class="btns"><button class="btn ghost" data-act="reload-names">Try the list again</button></div>':'');
+      }
+      h+='<section class="panel stack" style="--a:var(--cyan);--b:var(--mag)"><span class="eyebrow">Step 2 &middot; Your name</span>'+fld +
         '<p class="msg" id="nameMsg" role="alert">'+esc(nameMsg)+'</p>' +
-        '<div class="btns"><button class="btn" data-act="verify"'+(checking?' disabled':'')+'>'+(checking?'Checking...':'Continue')+'</button></div></section>';
+        '<div class="btns"><button class="btn" data-act="verify"'+((checking||rosterSt==='loading')?' disabled':'')+'>'+(checking?'Checking...':'Continue')+'</button></div></section>';
     }
   }
   if(resetAsk) h+='<div class="warn stack"><p><b>Reset this device?</b> All answers and sessions for Form 1 and Form 2 will be deleted.</p><div class="btns"><button class="btn" data-act="reset-do">Yes, reset</button><button class="btn ghost" data-act="reset-cancel">Cancel</button></div></div>';
   return h+'<footer class="foot note">Your progress is saved on this device and browser only.</footer>';
+}
+function loadRoster(cls){
+  if(!SHEET_URL||roster[cls]) { rosterSt=''; return; }
+  rosterSt='loading';
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },15000);
+  function end(list){ clearTimeout(to); if(list) roster[cls]=list; rosterSt=''; if(!state.who.ok&&state.who.cls===cls) render(); }
+  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'LIST_NAMES',cls:cls}),signal:ctl?ctl.signal:undefined})
+    .then(function(r){ return r.json(); })
+    .then(function(r){ end(r&&r.ok&&r.names&&r.names.length?r.names:null); })
+    .catch(function(){ end(null); });
 }
 function verifyName(){
   if(checking) return;
@@ -658,6 +680,7 @@ function verifyName(){
   function say(m){ nameMsg=m; var n=$('nameMsg'); if(n) n.textContent=m; }
   function done(name){ state.who.name=name; state.who.ok=true; state.ui.f=state.who.form; state.ui.view='home'; nameMsg=''; checking=false; render(); window.scrollTo(0,0); }
   if(!state.who.cls){ say('Choose your class first.'); return; }
+  if(el&&el.tagName==='SELECT'&&!nm){ say('Select your name from the list.'); return; }
   if(nm.split(' ').length<2){ say('Please type your full name.'); return; }
   if(!SHEET_URL){ done(nm); return; }
   checking=true; say(''); render();
@@ -895,7 +918,8 @@ function tryUnlock(){
 app.addEventListener('click',function(e){
   var t=e.target.closest('[data-act]'); if(!t||t.disabled) return;
   var a=t.dataset.act, f=state.ui.f, d=state.ui.d;
-  if(a==='pickclass'){ var c=null; CLASSES.forEach(function(x){ if(x.l===t.dataset.c) c=x; }); if(c){ state.who.cls=c.l; state.who.form=c.f; nameMsg=''; render(); var ni=$('nm'); if(ni) ni.focus(); } }
+  if(a==='pickclass'){ var c=null; CLASSES.forEach(function(x){ if(x.l===t.dataset.c) c=x; }); if(c){ state.who.cls=c.l; state.who.form=c.f; nameMsg=''; state.who.name=''; loadRoster(c.l); render(); } }
+  else if(a==='reload-names'){ loadRoster(state.who.cls); render(); }
   else if(a==='verify'){ verifyName(); }
   else if(a==='change'){ state.who={name:'',cls:'',form:0,ok:false}; nameMsg=''; render(); }
   else if(a==='form'){ if(!state.who.ok) return; state.ui.view='note'; state.ui.f=state.who.form; state.ui.d=1; confirming=false; render(); window.scrollTo(0,0); }
@@ -929,7 +953,7 @@ app.addEventListener('input',function(e){
     state.who.name=t.value; save();
   }
 });
-app.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.id==='code'){ e.preventDefault(); tryUnlock(); } if(e.key==='Enter'&&e.target.id==='nm'){ e.preventDefault(); verifyName(); } });
+app.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.id==='nm'&&e.target.tagName==='SELECT') return; if(e.key==='Enter'&&e.target.id==='code'){ e.preventDefault(); tryUnlock(); } if(e.key==='Enter'&&e.target.id==='nm'){ e.preventDefault(); verifyName(); } });
 window.addEventListener('hashchange',function(){ if(location.hash==='#reset'){ resetAsk=true; state.ui.view='home'; render(); } });
 
 render();
