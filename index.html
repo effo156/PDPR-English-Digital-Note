@@ -74,6 +74,8 @@ button,input,textarea{font:inherit;color:inherit}
   background:linear-gradient(120deg,var(--a,var(--p1)),var(--b,var(--p2)));color:var(--dark-ink);box-shadow:0 10px 26px -12px var(--a,var(--p1))}
 .btn:hover:not(:disabled){filter:brightness(1.1)}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn[aria-disabled="true"]{background:rgba(255,255,255,.06);color:var(--ink-2);border:1px dashed var(--line);box-shadow:none;cursor:not-allowed}
+.hint.flash{color:#fff;background:rgba(255,185,56,.28);padding:8px 12px;border-radius:8px;font-weight:700}
 .btn:disabled{background:rgba(255,255,255,.06);color:var(--ink-2);border:1px dashed var(--line);box-shadow:none;cursor:not-allowed}
 .btns{display:flex;flex-wrap:wrap;gap:10px}
 .back{background:none;border:0;color:var(--ink-2);font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:10px 0;min-height:44px}
@@ -532,6 +534,7 @@ function partReady(f,d,i){
   if(p.writing){ var w=wordCount(s.writing); if(w<p.minWords) return {ok:false,msg:'Write at least '+p.minWords+' words to continue. You have '+w+'.'}; }
   return {ok:true,msg:''};
 }
+function doneMsg(i,N){ return i+1<N?'Click DONE to open Part '+(i+2)+'. The next part stays closed until you click DONE.':'Click DONE to finish the parts. Then you can check your answers.'; }
 function dayStatus(f,d){ var s=D(f,d); return s.submittedTs?'Done':(s.unlocked?'In progress':'Locked'); }
 
 /* ---------- Result level ---------- */
@@ -744,7 +747,7 @@ function partsHTML(f,d,review){
     if(p.writing&&!review) h+=writingHTML(f,d);
     if(isNow){
       var r=partReady(f,d,i);
-      h+='<div class="doneZone"><button class="btn" id="doneBtn" data-act="done"'+(r.ok?'':' disabled')+'>DONE</button><p class="hint" id="doneHint">'+esc(r.msg)+'</p></div>';
+      h+='<div class="doneZone"><button class="btn" id="doneBtn" data-act="done" aria-disabled="'+(r.ok?'false':'true')+'">DONE</button><p class="hint" id="doneHint" aria-live="polite">'+esc(r.ok?doneMsg(i,N):r.msg)+'</p></div>';
     }
     h+='</section>';
   }
@@ -832,7 +835,7 @@ function updateLive(){
   var m=$('hudMeta'); if(m) m.innerHTML='Part '+Math.min(s.doneParts+1,N)+'/'+N+'<br>Answered '+a+'/'+qs.length;
   if(s.doneParts<N){
     var r=partReady(f,d,s.doneParts), b=$('doneBtn'), hint=$('doneHint');
-    if(b) b.disabled=!r.ok; if(hint) hint.textContent=r.msg;
+    if(b) b.setAttribute('aria-disabled',r.ok?'false':'true'); if(hint){ hint.textContent=r.ok?doneMsg(s.doneParts,N):r.msg; if(r.ok) hint.classList.remove('flash'); }
   }
 }
 function finalize(f,d,reason){
@@ -938,8 +941,20 @@ app.addEventListener('click',function(e){
   else if(a==='day'){ state.ui.d=+t.dataset.d; confirming=false; render(); window.scrollTo(0,0); }
   else if(a==='unlock'){ tryUnlock(); }
   else if(a==='done'){
-    var s=D(f,d), i=s.doneParts; if(i>=parts(f,d).length||!partReady(f,d,i).ok) return;
-    s.doneParts=i+1; save(); render(); goPart(s.doneParts);
+    var s=D(f,d), i=s.doneParts; if(i>=parts(f,d).length) return;
+    var rd=partReady(f,d,i);
+    if(!rd.ok){
+      var hn=$('doneHint'); if(hn){ hn.textContent=rd.msg; hn.classList.add('flash'); }
+      $('status').textContent=rd.msg;
+      var P=parts(f,d)[i], tgt=null;
+      for(var k=0;k<P.qs.length&&!tgt;k++){ if(typeof s.answers[P.qs[k].id]!=='number'){ var inp=document.querySelector('input[data-q="'+P.qs[k].id+'"]'); tgt=inp&&inp.closest('.q'); } }
+      if(!tgt&&P.writing) tgt=$('writing');
+      if(tgt){ tgt.scrollIntoView({behavior:'smooth',block:'center'}); if(tgt.id==='writing'){ try{ tgt.focus({preventScroll:true}); }catch(x){} } }
+      return;
+    }
+    s.doneParts=i+1; save(); render();
+    $('status').textContent=(i+1<parts(f,d).length)?('Part '+(i+1)+' is done. Part '+(i+2)+' is now open.'):'All parts are done. You can check your answers.';
+    goPart(s.doneParts);
   }
   else if(a==='ask-check'){ if(elapsed(f,d)<MIN_MS) return; confirming=true; $('checkZone').innerHTML=checkZoneHTML(f,d); }
   else if(a==='cancel-check'){ confirming=false; $('checkZone').innerHTML=checkZoneHTML(f,d); }
