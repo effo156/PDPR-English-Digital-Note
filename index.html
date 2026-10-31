@@ -492,7 +492,7 @@ var CONTENT = {
 /* ---------- State ---------- */
 var mem=null;
 function blankDay(){ return {unlocked:false,startTs:0,doneParts:0,answers:{},writing:'',checks:[],submittedTs:0,reason:'',usedMs:0,score:null,sync:null}; }
-function freshState(){ return {who:{name:'',cls:'',form:0,ok:false},forms:{1:{1:blankDay(),2:blankDay()},2:{1:blankDay(),2:blankDay()}},ui:{view:'home',f:1,d:1}}; }
+function freshState(){ return {who:{name:'',cls:'',form:0,ok:false,manual:false},forms:{1:{1:blankDay(),2:blankDay()},2:{1:blankDay(),2:blankDay()}},ui:{view:'home',f:1,d:1}}; }
 function valid(o){ try{ return o&&o.who&&o.forms&&o.forms[1]&&o.forms[1][1]&&o.forms[1][2]&&o.forms[2]&&o.forms[2][1]&&o.forms[2][2]&&o.ui; }catch(e){ return false; } }
 function load(){
   var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
@@ -503,7 +503,7 @@ function save(){ mem=state; try{ localStorage.setItem(KEY,JSON.stringify(state))
 var state=load();
 var confirming=false, announced={}, resetAsk=(location.hash==='#reset');
 var CLASSES=[{l:'1 Beryl',f:1},{l:'1 Ruby',f:1},{l:'2 Amethyst',f:2},{l:'2 Lazuli',f:2},{l:'2 Pearl',f:2}];
-var nameMsg='', checking=false, roster={}, rosterSt='';
+var nameMsg='', checking=false, roster={}, rosterSt='', manualMode=false, starting=false, lastStatus=0;
 
 /* ---------- Helpers ---------- */
 function $(id){ return document.getElementById(id); }
@@ -535,7 +535,7 @@ function partReady(f,d,i){
   return {ok:true,msg:''};
 }
 function doneMsg(i,N){ return i+1<N?'Click DONE to open Part '+(i+2)+'. The next part stays closed until you click DONE.':'Click DONE to finish the parts. Then you can check your answers.'; }
-function dayStatus(f,d){ var s=D(f,d); return s.submittedTs?'Done':(s.unlocked?'In progress':'Locked'); }
+function dayStatus(f,d){ var s=D(f,d); return s.submittedTs?'Done':(s.srvUsed?'Already used':(s.unlocked?'In progress':'Locked')); }
 
 /* ---------- Result level ---------- */
 function tierOf(f,d,sc){
@@ -645,7 +645,7 @@ function homeHTML(){
   if(w.ok){
     var started=false; [1,2].forEach(function(f){ [1,2].forEach(function(d){ if(D(f,d).unlocked) started=true; }); });
     h+='<section class="panel stack" style="--a:var(--violet);--b:var(--cyan)"><span class="eyebrow">Signed in</span>' +
-      '<strong class="who">'+esc(w.name)+'</strong><span class="note">Class: '+esc(w.cls)+'</span>' +
+      '<strong class="who">'+esc(w.name)+'</strong><span class="note">Class: '+esc(w.cls)+(w.manual?' &middot; name typed by you':'')+'</span>' +
       (started?'':'<div class="btns"><button class="btn ghost" data-act="change">Not you? Change class or name</button></div>')+'</section>' +
       '<div class="forms one">'+card(w.form)+'</div>';
   } else {
@@ -653,10 +653,15 @@ function homeHTML(){
       group(1)+group(2)+'</section>';
     if(w.cls){
       var names=roster[w.cls], fld;
-      if(names){
+      if(names&&manualMode){
+        fld='<div class="field"><label for="nm">Full name ('+esc(w.cls)+')</label><input id="nm" autocomplete="off" maxlength="60" placeholder="Type your full name" value="'+esc(w.name)+'"></div>' +
+          '<p class="note">Type your full name as it is in your IC. Your teacher will check it.</p>' +
+          '<div class="btns"><button class="btn ghost" data-act="uselist">Back to the name list</button></div>';
+      } else if(names){
         fld='<div class="field"><label for="nm">Select your name ('+esc(w.cls)+')</label><select id="nm"><option value="">Choose your name</option>';
         names.forEach(function(n){ fld+='<option value="'+esc(n)+'"'+(w.name===n?' selected':'')+'>'+esc(n)+'</option>'; });
-        fld+='</select></div><p class="note">Cannot find your name? Check that you chose the right class, or tell your teacher.</p>';
+        fld+='</select></div><p class="note">Cannot find your name? Check that you chose the right class first.</p>' +
+          '<div class="btns"><button class="btn ghost" data-act="manual">My name is not on the list</button></div>';
       } else if(rosterSt==='loading'){
         fld='<p class="note">Loading the name list...</p>';
       } else {
@@ -672,6 +677,31 @@ function homeHTML(){
   if(resetAsk) h+='<div class="warn stack"><p><b>Reset this device?</b> All answers and sessions for Form 1 and Form 2 will be deleted.</p><div class="btns"><button class="btn" data-act="reset-do">Yes, reset</button><button class="btn ghost" data-act="reset-cancel">Cancel</button></div></div>';
   return h+'<footer class="foot note">Your progress is saved on this device and browser only.</footer>';
 }
+function whoBody(x){ var b={cls:state.who.cls,name:state.who.name,manual:state.who.manual===true,form:state.who.form}; for(var k in x) b[k]=x[k]; return b; }
+function api(body,cb){
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },20000);
+  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
+    .then(function(r){ return r.json(); })
+    .then(function(r){ clearTimeout(to); cb(null,r); })
+    .catch(function(){ clearTimeout(to); cb('net'); });
+}
+function statusSync(){
+  if(!SHEET_URL||!state.who.ok) return;
+  lastStatus=Date.now(); var t0=Date.now(), f=state.who.form;
+  api(whoBody({action:'STATUS'}),function(err,r){
+    if(err||!r||!r.ok||!r.days) return;
+    var changed=false;
+    [1,2].forEach(function(d){
+      var s=D(f,d), sv=r.days[d]||{};
+      if(sv.started&&!s.unlocked&&!s.submittedTs){ if(!s.srvUsed){ s.srvUsed=true; changed=true; } }
+      else if(!sv.started&&s.srvUsed){ s.srvUsed=false; changed=true; }
+      else if(!sv.started&&(s.unlocked||s.submittedTs)&&s.startTs<t0-4000&&(!s.submittedTs||(s.sync&&s.sync.st==='sent'))){
+        state.forms[f][d]=blankDay(); changed=true;
+      }
+    });
+    if(changed){ save(); var ae=document.activeElement; if(!(ae&&ae.id==='writing')) render(); }
+  });
+}
 function loadRoster(cls){
   if(!SHEET_URL||roster[cls]) { rosterSt=''; return; }
   rosterSt='loading';
@@ -684,19 +714,19 @@ function loadRoster(cls){
 }
 function verifyName(){
   if(checking) return;
-  var el=$('nm'), nm=el?el.value.replace(/\s+/g,' ').trim():''; state.who.name=nm;
+  var el=$('nm'), nm=el?el.value.replace(/\s+/g,' ').trim():''; state.who.name=nm; var typed=!!el&&el.tagName!=='SELECT';
   function say(m){ nameMsg=m; var n=$('nameMsg'); if(n) n.textContent=m; }
-  function done(name){ state.who.name=name; state.who.ok=true; state.ui.f=state.who.form; state.ui.view='home'; nameMsg=''; checking=false; render(); window.scrollTo(0,0); }
+  function done(name,type){ state.who.name=name; state.who.manual=(type==='Manual'); manualMode=false; state.who.ok=true; state.ui.f=state.who.form; state.ui.view='home'; nameMsg=''; checking=false; render(); window.scrollTo(0,0); }
   if(!state.who.cls){ say('Choose your class first.'); return; }
   if(el&&el.tagName==='SELECT'&&!nm){ say('Select your name from the list.'); return; }
   if(nm.split(' ').length<2){ say('Please type your full name.'); return; }
-  if(!SHEET_URL){ done(nm); return; }
+  if(!SHEET_URL){ done(nm,typed?'Manual':'Roster'); return; }
   checking=true; say(''); render();
   var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },20000);
   function bad(m){ clearTimeout(to); checking=false; nameMsg=m; render(); var e2=$('nm'); if(e2) e2.focus(); }
-  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'CHECK_NAME',cls:state.who.cls,name:nm}),signal:ctl?ctl.signal:undefined})
+  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'CHECK_NAME',cls:state.who.cls,name:nm,manual:typed}),signal:ctl?ctl.signal:undefined})
     .then(function(r){ return r.json(); })
-    .then(function(r){ clearTimeout(to); if(r&&r.ok&&r.name) done(r.name); else bad((r&&r.error)||'We could not check your name. Try again.'); })
+    .then(function(r){ clearTimeout(to); if(r&&r.ok&&r.name){ done(r.name,r.type); statusSync(); } else bad((r&&r.error)||'We could not check your name. Try again.'); })
     .catch(function(){ bad('No connection. Check your internet and try again.'); });
 }
 
@@ -799,8 +829,14 @@ function resultHTML(f,d){
     '<div class="stack"><span class="eyebrow" style="--a:var(--violet)">Review</span><h2>Your answers and explanations</h2></div>';
   return h;
 }
+function blockedHTML(f,d){
+  return '<section class="panel stack gate pa3"><span class="eyebrow">Day '+d+' &middot; Already used</span><h2>You cannot start Day '+d+' again</h2>' +
+    '<p>Each name can try each day <b>only once</b>, and Day '+d+' has already been used for <b>'+esc(state.who.name)+'</b>.</p>' +
+    '<p class="note">If you need another try, ask your teacher to reset it. Then come back to this page.</p></section>';
+}
 function gateOrSession(f,d){
   var s=D(f,d);
+  if(!s.submittedTs&&s.srvUsed) return blockedHTML(f,d);
   if(!s.unlocked) return gateHTML(f,d);
   if(!s.submittedTs){
     var N=parts(f,d).length;
@@ -811,11 +847,12 @@ function gateOrSession(f,d){
 function noteHTML(){
   var f=state.ui.f, d=state.ui.d, C=CONTENT[f];
   function tab(x){ return '<button class="tab" role="tab" data-act="day" data-d="'+x+'" aria-selected="'+(d===x)+'">Day '+x+'<small>'+dayStatus(f,x)+'</small></button>'; }
-  return '<div><button class="back" data-act="home">&lsaquo; Change form</button></div>' +
+  return '<div><button class="back" data-act="home">&lsaquo; Back to home</button></div>' +
     '<header class="hero"><p class="eyebrow" style="--a:var(--p1)">Form '+f+' &middot; '+C.theme+'</p><h1>'+C.name+'</h1></header>' +
     '<div class="tabs" role="tablist" aria-label="Choose day">'+tab(1)+tab(2)+'</div>' +
     gateOrSession(f,d) +
-    '<footer class="foot note">Your progress is saved on this device and browser only.</footer>';
+    '<div class="btns"><button class="back" data-act="home">&lsaquo; Back to home</button></div>' +
+    '<footer class="foot note">Your progress is saved on this device and browser only. If you go home during a session, the timer keeps running.</footer>';
 }
 
 /* ---------- Render and live updates ---------- */
@@ -854,7 +891,7 @@ var inflight={};
 function payloadOf(f,d){
   var s=D(f,d), sc=s.score||computeScore(f,d), C=CONTENT[f], chk=0;
   for(var i=0;i<C.checks.length;i++) if(s.checks[i]) chk++;
-  return {action:'SUBMIT_RESULT',form:f,day:d,name:state.who.name,cls:state.who.cls,answers:s.answers,clientScore:sc.total,
+  return {action:'SUBMIT_RESULT',form:f,day:d,name:state.who.name,cls:state.who.cls,manual:state.who.manual===true,answers:s.answers,clientScore:sc.total,
     level:tierOf(f,d,sc).name,usedMs:s.usedMs,reason:s.reason,submittedAt:stampOf(s.submittedTs),
     writing:d===2?s.writing:'',words:d===2?wordCount(s.writing):0,selfCheck:d===2?chk:0};
 }
@@ -915,7 +952,7 @@ function tick(){
   if(open&&!announced[key]){ announced[key]=true; $('status').textContent='The Check my answer button is now open.'; }
 }
 setInterval(tick,1000);
-document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ tick(); if(Date.now()-lastStatus>30000) statusSync(); } });
 
 /* ---------- Events ---------- */
 function goPart(i){
@@ -926,16 +963,28 @@ function tryUnlock(){
   var f=state.ui.f,d=state.ui.d, v=norm($('code').value), msg=$('codeMsg');
   if(!v){ msg.textContent='Type the access code first.'; return; }
   if(h53(v)!==CODE_HASH[d]){ msg.textContent='That code is not correct. Check it with your teacher and try again.'; return; }
-  var s=D(f,d); s.unlocked=true; s.startTs=Date.now(); s.doneParts=0; save(); render(); window.scrollTo(0,0);
-  $('status').textContent='Day '+d+' unlocked. Your 60-minute session has started.';
+  function begin(){ var s=D(f,d); s.unlocked=true; s.startTs=Date.now(); s.doneParts=0; s.srvUsed=false; save(); render(); window.scrollTo(0,0);
+    $('status').textContent='Day '+d+' unlocked. Your 60-minute session has started.'; }
+  if(!SHEET_URL){ begin(); return; }
+  if(starting) return; starting=true; msg.textContent='Checking...';
+  api(whoBody({action:'START_DAY',form:f,day:d}),function(err,r){
+    starting=false;
+    var m=$('codeMsg');
+    if(err||!r){ if(m) m.textContent='No connection. Check your internet and try again.'; return; }
+    if(r.ok){ begin(); return; }
+    if(r.used){ D(f,d).srvUsed=true; save(); render(); return; }
+    if(m) m.textContent=r.error||'We could not start the session. Try again.';
+  });
 }
 app.addEventListener('click',function(e){
   var t=e.target.closest('[data-act]'); if(!t||t.disabled) return;
   var a=t.dataset.act, f=state.ui.f, d=state.ui.d;
-  if(a==='pickclass'){ var c=null; CLASSES.forEach(function(x){ if(x.l===t.dataset.c) c=x; }); if(c){ state.who.cls=c.l; state.who.form=c.f; nameMsg=''; state.who.name=''; loadRoster(c.l); render(); } }
+  if(a==='pickclass'){ var c=null; CLASSES.forEach(function(x){ if(x.l===t.dataset.c) c=x; }); if(c){ state.who.cls=c.l; state.who.form=c.f; nameMsg=''; state.who.name=''; manualMode=false; loadRoster(c.l); render(); } }
+  else if(a==='manual'){ manualMode=true; nameMsg=''; state.who.name=''; render(); var mi=$('nm'); if(mi) mi.focus(); }
+  else if(a==='uselist'){ manualMode=false; nameMsg=''; state.who.name=''; render(); }
   else if(a==='reload-names'){ loadRoster(state.who.cls); render(); }
   else if(a==='verify'){ verifyName(); }
-  else if(a==='change'){ state.who={name:'',cls:'',form:0,ok:false}; nameMsg=''; render(); }
+  else if(a==='change'){ state.who={name:'',cls:'',form:0,ok:false,manual:false}; nameMsg=''; manualMode=false; render(); }
   else if(a==='form'){ if(!state.who.ok) return; state.ui.view='note'; state.ui.f=state.who.form; state.ui.d=1; confirming=false; render(); window.scrollTo(0,0); }
   else if(a==='home'){ state.ui.view='home'; confirming=false; render(); window.scrollTo(0,0); }
   else if(a==='day'){ state.ui.d=+t.dataset.d; confirming=false; render(); window.scrollTo(0,0); }
@@ -983,6 +1032,7 @@ app.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.id==='n
 window.addEventListener('hashchange',function(){ if(location.hash==='#reset'){ resetAsk=true; state.ui.view='home'; render(); } });
 
 render();
+statusSync();
 })();
 </script>
 </body>

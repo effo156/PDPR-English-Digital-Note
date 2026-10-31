@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>PDPR Teacher Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Orbitron:wght@700;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#080C18; --panel:#101731; --line:#26335c; --ink:#EEF3FF; --ink-2:#A9B6D8;
+  --cyan:#2EE6FF; --violet:#A584FF; --mag:#FF55D6; --lime:#B8FF4A; --amber:#FFB938; --bad:#FF7A8A;
+  --f-body:'Atkinson Hyperlegible',system-ui,sans-serif; --f-display:'Orbitron',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,rgba(165,132,255,.18),transparent 60%),radial-gradient(900px 500px at -10% 10%,rgba(46,230,255,.14),transparent 60%),var(--bg);
+  color:var(--ink);font:17px/1.55 var(--f-body);min-height:100vh;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1{font:900 clamp(26px,6vw,38px)/1.1 var(--f-display);margin:0;background:linear-gradient(90deg,var(--cyan),var(--violet),var(--mag));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font:700 18px var(--f-display);margin:0;letter-spacing:.03em}
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.note{color:var(--ink-2);font-size:15px;margin:0}
+.panel{background:linear-gradient(160deg,rgba(255,255,255,.06),var(--panel) 55%);border:1px solid var(--line);border-radius:8px 22px 8px 22px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.btn{min-height:46px;padding:0 20px;border:0;border-radius:8px 16px 8px 16px;cursor:pointer;font:700 14px var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:#061023;background:linear-gradient(90deg,var(--cyan),var(--mag))}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:12px}
+.btn.danger{background:linear-gradient(90deg,#ff7a8a,#ffb938)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+input,select{min-height:46px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.35);color:var(--ink);font:17px var(--f-body);width:100%}
+select{background:#0b1020}
+.msg{min-height:1.4em;color:var(--bad);font-weight:700;margin:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.row .field{flex:1 1 180px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{min-height:44px;padding:0 16px;border-radius:8px 16px 8px 16px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--ink);font:700 14px var(--f-display);cursor:pointer}
+.tab[aria-pressed="true"]{border-color:var(--cyan);box-shadow:inset 0 0 0 2px var(--cyan);background:rgba(255,255,255,.07)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:8px 16px 8px 16px;padding:10px 12px;background:rgba(0,0,0,.25)}
+.stat b{display:block;font:900 24px var(--f-display);color:var(--cyan)}
+.stat span{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.list{display:flex;flex-direction:column;gap:8px}
+.stu{border:1px solid var(--line);border-radius:8px 16px 8px 16px;background:rgba(0,0,0,.22)}
+.stu>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:34px minmax(0,1fr) 150px 150px;gap:8px;align-items:center;padding:10px 12px}
+.stu>summary::-webkit-details-marker{display:none}
+.stu .n{font:600 12px var(--f-mono);color:var(--ink-2)}
+.stu .nm{overflow-wrap:anywhere;font-weight:700}
+.tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;border:1px solid var(--amber);color:var(--amber);font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;vertical-align:middle}
+.chip{display:inline-flex;flex-direction:column;gap:0;padding:4px 10px;border-radius:8px;font:600 13px var(--f-mono);border:1px solid var(--line);color:var(--ink-2)}
+.chip small{font:500 11px var(--f-mono);opacity:.85}
+.chip.sub{border-color:var(--lime);color:var(--lime)}
+.chip.top{border-color:var(--cyan);color:var(--cyan)}
+.chip.low{border-color:var(--bad);color:var(--bad)}
+.chip.go{border-color:var(--amber);color:var(--amber)}
+.det{padding:6px 14px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;border-top:1px solid var(--line)}
+.det h3{margin:8px 0 4px;font:700 14px var(--f-display);color:var(--violet)}
+.det p{margin:2px 0;font-size:15px}
+.wr{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:15px;max-height:260px;overflow:auto}
+.hd{display:grid;grid-template-columns:34px minmax(0,1fr) 150px 150px;gap:8px;padding:0 12px;font:600 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+@media (max-width:640px){
+  .hd{display:none}
+  .stu>summary{grid-template-columns:28px minmax(0,1fr) 1fr;}
+  .stu>summary .nm{grid-column:2/4}
+  .stu>summary .d1{grid-column:2}
+  .stu>summary .d2{grid-column:3}
+}
+.top-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:no-preference){.tab,.btn{transition:transform .12s}.btn:hover{transform:translateY(-1px)}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+(function(){
+'use strict';
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyEkGC0Juv59CW5ROxxnQGE9F79RBXaMQhK2LeHTknuJ-6maMHLihmRGVc6Vcc1Obm15Q/exec';
+var CLASSES=['1 Beryl','1 Ruby','2 Amethyst','2 Lazuli','2 Pearl'];
+var app=document.getElementById('app'), pin='', data=null, view={cls:'All',q:'',sort:'name'}, openKeys={}, confirmKey='', msg='', busy=false, timer=null, lastLoad=0;
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function norm(s){ return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+function keyOf(n,c,f,d){ return norm(n)+'|'+norm(c)+'|'+f+'|'+d; }
+function call(body,cb){
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },30000);
+  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
+    .then(function(r){ return r.json(); }).then(function(r){ clearTimeout(to); cb(null,r); }).catch(function(){ clearTimeout(to); cb('net'); });
+}
+
+/* ---------- Build the student table ---------- */
+function build(){
+  var subs={}, atts={}, rows=[], seen={};
+  data.subs.forEach(function(s){ subs[s.key]=s; });
+  data.atts.forEach(function(a){ atts[a.key]=a; });
+  function mk(name,cls,type){
+    var f=Number(cls.charAt(0)), r={name:name,cls:cls,form:f,type:type,days:{}};
+    [1,2].forEach(function(d){
+      var k=keyOf(name,cls,f,d), s=subs[k], a=atts[k];
+      r.days[d]={key:k,sub:s||null,att:a||null,state:s?'sub':(a?'go':'none')};
+    });
+    return r;
+  }
+  CLASSES.forEach(function(c){ (data.roster[c]||[]).forEach(function(n){ var r=mk(n,c,'Roster'); seen[r.days[1].key.split('|').slice(0,3).join('|')]=1; rows.push(r); }); });
+  var extra={};
+  data.atts.concat(data.subs).forEach(function(x){
+    var k=norm(x.name)+'|'+norm(x.cls)+'|'+x.form;
+    if(seen[k]||extra[k]) return; extra[k]=1; rows.push(mk(x.name,x.cls,'Manual'));
+  });
+  return rows;
+}
+function chip(day){
+  if(day.state==='sub'){ var s=day.sub, c=s.pct===100?'top':(s.pct<50?'low':'sub'); return '<span class="chip '+c+'">'+s.score+'/'+s.max+' &middot; '+s.pct+'%<small>'+esc(s.level)+'</small></span>'; }
+  if(day.state==='go') return '<span class="chip go">Started<small>not submitted</small></span>';
+  return '<span class="chip">Not started</span>';
+}
+function pctOf(day){ return day.state==='sub'?day.sub.pct:-1; }
+
+/* ---------- Views ---------- */
+function loginHTML(){
+  return '<header><span class="eyebrow">PDPR English &middot; Teacher</span><h1>Teacher Dashboard</h1></header>' +
+    '<section class="panel"><h2>Enter your teacher PIN</h2><p class="note">The PIN is set in Code.gs (TEACHER_PIN). Students cannot see this page&rsquo;s data without it.</p>' +
+    '<div class="field"><label for="pin">Teacher PIN</label><input id="pin" type="password" autocomplete="current-password" inputmode="text"></div>' +
+    '<p class="msg" id="msg" role="alert">'+esc(msg)+'</p>' +
+    '<div><button class="btn" id="go"'+(busy?' disabled':'')+'>'+(busy?'Opening...':'Open dashboard')+'</button></div></section>';
+}
+function dashHTML(){
+  var rows=build().filter(function(r){ return (view.cls==='All'||r.cls===view.cls); });
+  var q=norm(view.q);
+  var shown=rows.filter(function(r){ return !q||norm(r.name).indexOf(q)>-1; });
+  var st={n:rows.length,s1:0,s2:0,t1:0,t2:0,c1:0,c2:0,top:0};
+  rows.forEach(function(r){ [1,2].forEach(function(d){ var x=r.days[d]; if(x.state==='sub'){ st['s'+d]++; st['t'+d]+=x.sub.pct; if(x.sub.pct===100) st.top++; } }); });
+  var avg=function(d){ return st['s'+d]?Math.round(st['t'+d]/st['s'+d])+'%':'-'; };
+  shown.sort(function(a,b){
+    if(view.sort==='d1') return pctOf(b.days[1])-pctOf(a.days[1])||a.name.localeCompare(b.name);
+    if(view.sort==='d2') return pctOf(b.days[2])-pctOf(a.days[2])||a.name.localeCompare(b.name);
+    if(view.sort==='todo'){ var ta=(a.days[1].state==='sub'?1:0)+(a.days[2].state==='sub'?1:0), tb=(b.days[1].state==='sub'?1:0)+(b.days[2].state==='sub'?1:0); return ta-tb||a.name.localeCompare(b.name); }
+    return a.cls.localeCompare(b.cls)||a.name.localeCompare(b.name);
+  });
+  var h='<header class="top-actions"><div><span class="eyebrow">PDPR English &middot; Teacher</span><h1>Teacher Dashboard</h1></div>' +
+    '<div class="row" style="flex:0 0 auto"><button class="btn ghost sm" id="refresh">'+(busy?'Loading...':'Refresh')+'</button><button class="btn ghost sm" id="csv">Download CSV</button><button class="btn ghost sm" id="lock">Lock</button></div></header>';
+  h+='<div class="tabs" role="group" aria-label="Class">';
+  ['All'].concat(CLASSES).forEach(function(c){ h+='<button class="tab" data-cls="'+esc(c)+'" aria-pressed="'+(view.cls===c)+'">'+esc(c)+'</button>'; });
+  h+='</div><div class="stats">' +
+    '<div class="stat"><b>'+st.n+'</b><span>Students</span></div>' +
+    '<div class="stat"><b>'+st.s1+'/'+st.n+'</b><span>Day 1 submitted</span></div><div class="stat"><b>'+avg(1)+'</b><span>Day 1 average</span></div>' +
+    '<div class="stat"><b>'+st.s2+'/'+st.n+'</b><span>Day 2 submitted</span></div><div class="stat"><b>'+avg(2)+'</b><span>Day 2 average</span></div></div>';
+  h+='<section class="panel"><div class="row"><div class="field"><label for="q">Search name</label><input id="q" autocomplete="off" value="'+esc(view.q)+'"></div>' +
+    '<div class="field"><label for="sort">Sort by</label><select id="sort">' +
+    [['name','Class and name'],['d1','Day 1 score (high to low)'],['d2','Day 2 score (high to low)'],['todo','Not finished first']].map(function(o){ return '<option value="'+o[0]+'"'+(view.sort===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('') +
+    '</select></div></div><p class="msg" id="msg" role="alert">'+esc(msg)+'</p>' +
+    '<div class="hd"><span>#</span><span>Name</span><span>Day 1</span><span>Day 2</span></div><div class="list">';
+  if(!shown.length) h+='<p class="note">No student matches.</p>';
+  shown.forEach(function(r,i){
+    var id=r.days[1].key.split('|').slice(0,3).join('|');
+    h+='<details class="stu" data-id="'+esc(id)+'"'+(openKeys[id]?' open':'')+'><summary><span class="n">'+(i+1)+'</span><span class="nm">'+esc(r.name)+(r.type==='Manual'?'<span class="tag">typed</span>':'')+(view.cls==='All'?'<br><span class="note">'+esc(r.cls)+'</span>':'')+'</span><span class="d1">'+chip(r.days[1])+'</span><span class="d2">'+chip(r.days[2])+'</span></summary><div class="det">';
+    [1,2].forEach(function(d){
+      var x=r.days[d];
+      h+='<div><h3>Day '+d+'</h3>';
+      if(x.state==='none') h+='<p class="note">Not started.</p>';
+      else{
+        if(x.att) h+='<p class="note">Started: '+esc(x.att.startedAt)+'</p>';
+        if(x.sub){ var s=x.sub;
+          h+='<p><b>'+s.score+'/'+s.max+'</b> ('+s.pct+'%) &middot; '+esc(s.level)+'</p><p class="note">Submitted: '+esc(s.at)+' &middot; Time used: '+esc(s.used)+' &middot; '+(s.reason==='timeup'?'time is up':'clicked Check')+'</p>';
+          if(d===2) h+='<p class="note">Words: '+s.words+' &middot; Self-check ticks: '+s.selfCheck+'</p><div class="wr">'+esc(s.writing||'(nothing written)')+'</div>';
+        } else h+='<p class="note">Started but has not submitted yet.</p>';
+        var k=x.key;
+        h+='<p style="margin-top:8px">'+(confirmKey===k?'<button class="btn danger sm" data-yes="'+esc(k)+'">Yes, reset Day '+d+'</button> <button class="btn ghost sm" data-no="1">Cancel</button>':'<button class="btn ghost sm" data-reset="'+esc(k)+'">Reset Day '+d+'</button>')+'</p>';
+        if(confirmKey===k) h+='<p class="note">This deletes the result and lets '+esc(r.name)+' try Day '+d+' again. The old result is kept in the ResetLog tab.</p>';
+      }
+      h+='</div>';
+    });
+    h+='</div></details>';
+  });
+  h+='</div></section><p class="note">Updated '+esc(data.now||'')+'. Rank and score are marked by the server, not by the student&rsquo;s browser. A &ldquo;typed&rdquo; name was written by the student and is not on the class list.</p>';
+  return h;
+}
+function render(){
+  var keep=document.activeElement&&document.activeElement.id, pos=document.activeElement&&document.activeElement.selectionStart;
+  app.innerHTML=data?dashHTML():loginHTML();
+  if(keep){ var e=document.getElementById(keep); if(e){ e.focus(); try{ if(pos!=null) e.setSelectionRange(pos,pos); }catch(x){} } }
+}
+
+/* ---------- Actions ---------- */
+function load(first){
+  if(busy) return; busy=true; msg=''; render();
+  call({action:'TEACHER_DATA',pin:pin},function(err,r){
+    busy=false;
+    if(err){ msg='No connection. Try again.'; if(!data) pin=''; render(); return; }
+    if(!r||!r.ok){ msg=(r&&r.error)||'Could not open the dashboard.'; if(!data) pin=''; render(); return; }
+    data=r; lastLoad=Date.now(); render();
+    if(first&&!timer) timer=setInterval(function(){ if(!document.hidden&&data&&!busy&&Date.now()-lastLoad>60000&&!document.querySelector('details[open]')) load(false); },15000);
+  });
+}
+function reset(key){
+  busy=true; msg=''; render();
+  call({action:'TEACHER_RESET',pin:pin,key:key},function(err,r){
+    busy=false; confirmKey='';
+    if(err||!r||!r.ok){ msg=(r&&r.error)||'Could not reset. Check your connection.'; render(); return; }
+    msg=''; busy=false; load(false);
+  });
+}
+function csvEsc(v){ v=String(v==null?'':v); if(/^[=+\-@]/.test(v)) v="'"+v; return '"'+v.replace(/"/g,'""').replace(/\r?\n/g,' ')+'"'; }
+function csv(){
+  var out=[['Class','Name','Name type','Day 1 status','Day 1 score','Day 1 max','Day 1 %','Day 2 status','Day 2 score','Day 2 max','Day 2 %','Day 2 words','Day 2 writing']];
+  build().sort(function(a,b){ return a.cls.localeCompare(b.cls)||a.name.localeCompare(b.name); }).forEach(function(r){
+    var a=r.days[1], b=r.days[2], f=function(x){ return x.state==='sub'?'Submitted':(x.state==='go'?'Started':'Not started'); };
+    out.push([r.cls,r.name,r.type,f(a),a.sub?a.sub.score:'',a.sub?a.sub.max:'',a.sub?a.sub.pct:'',f(b),b.sub?b.sub.score:'',b.sub?b.sub.max:'',b.sub?b.sub.pct:'',b.sub?b.sub.words:'',b.sub?b.sub.writing:'']);
+  });
+  var blob=new Blob(['﻿'+out.map(function(r){ return r.map(csvEsc).join(','); }).join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='pdpr-results.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+
+app.addEventListener('click',function(e){
+  var t=e.target;
+  if(t.id==='go'){ var v=document.getElementById('pin').value; if(!v){ msg='Type your PIN.'; render(); return; } pin=v; load(true); }
+  else if(t.id==='refresh') load(false);
+  else if(t.id==='csv') csv();
+  else if(t.id==='lock'){ data=null; pin=''; msg=''; openKeys={}; render(); }
+  else if(t.dataset&&t.dataset.cls){ view.cls=t.dataset.cls; render(); }
+  else if(t.dataset&&t.dataset.reset){ confirmKey=t.dataset.reset; render(); }
+  else if(t.dataset&&t.dataset.no){ confirmKey=''; render(); }
+  else if(t.dataset&&t.dataset.yes){ reset(t.dataset.yes); }
+});
+app.addEventListener('input',function(e){ if(e.target.id==='q'){ view.q=e.target.value; render(); } });
+app.addEventListener('change',function(e){ if(e.target.id==='sort'){ view.sort=e.target.value; render(); } });
+app.addEventListener('toggle',function(e){ var d=e.target; if(d.classList&&d.classList.contains('stu')){ if(d.open) openKeys[d.dataset.id]=1; else delete openKeys[d.dataset.id]; } },true);
+app.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.id==='pin'){ e.preventDefault(); document.getElementById('go').click(); } });
+render();
+})();
+</script>
+</body>
+</html>
