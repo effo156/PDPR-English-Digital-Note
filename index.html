@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PDPR English Digital Note</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: dark control-room look, one narrow column for phones. Home (name + choose form) > note (day tabs, code gate, parts that open one by one) > result card made for a screenshot. Each part has its own neon colour. */
+:root{
+  color-scheme:dark;
+  --bg:#060A18; --panel:#0D1530; --panel-2:#16224D; --line:rgba(140,170,255,.26);
+  --ink:#EAF0FF; --ink-2:#A8B7DD;
+  --cyan:#2EE6FF; --violet:#A584FF; --mag:#FF55D6; --lime:#B8FF4A; --amber:#FFB938;
+  --ok:#4DFFA8; --bad:#FF7A8C;
+  --p1:var(--cyan); --p2:var(--violet);
+  --dark-ink:#04101C;
+  --f-display:'Orbitron','Segoe UI',system-ui,sans-serif;
+  --f-body:'Atkinson Hyperlegible','Segoe UI',system-ui,-apple-system,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+[data-form="2"]{--p1:var(--mag);--p2:var(--amber)}
+*{box-sizing:border-box}
+body{
+  margin:0; color:var(--ink); font-family:var(--f-body); font-size:17px; line-height:1.55;
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(700px 420px at 8% -8%, rgba(165,132,255,.30), transparent 62%),
+    radial-gradient(640px 420px at 100% 4%, rgba(46,230,255,.18), transparent 62%),
+    radial-gradient(600px 400px at 50% 110%, rgba(255,85,214,.14), transparent 62%),
+    linear-gradient(rgba(140,170,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140,170,255,.055) 1px, transparent 1px);
+  background-size:auto,auto,auto,38px 38px,38px 38px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:22px 72px;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg)}
+.page{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px;min-width:0}
+h1,h2,h3,p{margin:0}
+h1{font:900 clamp(30px,9vw,52px)/1.04 var(--f-display);text-transform:uppercase;letter-spacing:.02em;
+  color:var(--p1);background:linear-gradient(100deg,var(--p1),var(--p2) 60%,var(--mag));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;overflow-wrap:anywhere}
+h2{font:700 clamp(18px,5vw,22px)/1.2 var(--f-display);letter-spacing:.02em;text-wrap:balance}
+h3{font:700 17px/1.3 var(--f-body)}
+.eyebrow{font:600 12px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--a,var(--ink-2))}
+.sub{color:var(--ink-2);max-width:60ch}
+.stack{display:flex;flex-direction:column;gap:12px}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+.panel{position:relative;border:1px solid transparent;border-radius:6px 24px 6px 24px;padding:18px;min-width:0;
+  background:linear-gradient(var(--panel),var(--panel)) padding-box,
+             linear-gradient(135deg,var(--a,var(--p1)),rgba(140,170,255,.14) 55%,var(--b,var(--p2))) border-box;
+  box-shadow:0 22px 44px -30px var(--a,var(--p1))}
+.box{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.box .lab{font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--a,var(--cyan))}
+.ex{font-size:18px}
+.ex b,.box b.k{color:var(--a,var(--cyan))}
+.note{font-size:15px;color:var(--ink-2)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.field input{min-height:50px;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.35);width:100%;font-size:18px}
+.field input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(46,230,255,.2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.row2{grid-template-columns:1fr}}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+.btn{min-height:52px;padding:0 24px;border-radius:8px 18px 8px 18px;border:0;cursor:pointer;font:700 15px var(--f-display);letter-spacing:.06em;text-transform:uppercase;
+  background:linear-gradient(120deg,var(--a,var(--p1)),var(--b,var(--p2)));color:var(--dark-ink);box-shadow:0 10px 26px -12px var(--a,var(--p1))}
+.btn:hover:not(:disabled){filter:brightness(1.1)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn:disabled{background:rgba(255,255,255,.06);color:var(--ink-2);border:1px dashed var(--line);box-shadow:none;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.back{background:none;border:0;color:var(--ink-2);font:600 13px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:10px 0;min-height:44px}
+.back:hover{color:var(--ink)}
+
+/* home */
+.hero{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.forms{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.forms{grid-template-columns:1fr}}
+.fcard{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:8px;min-height:190px;padding:18px;border:1px solid transparent;border-radius:6px 26px 6px 26px;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),var(--panel) 55%) padding-box,linear-gradient(135deg,var(--a),rgba(140,170,255,.12) 60%,var(--b)) border-box;
+  box-shadow:0 24px 46px -30px var(--a);transition:transform .15s}
+.fcard:hover:not([disabled]){transform:translateY(-3px)}
+.fcard[disabled]{opacity:.45;cursor:not-allowed}
+.fcard:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.fcard .num{font:900 clamp(34px,10vw,46px)/1 var(--f-display);color:var(--a);text-shadow:0 0 22px var(--a)}
+.fcard .topic{font:700 20px/1.2 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.fcard .st{margin-top:auto;font:500 12px/1.6 var(--f-mono);color:var(--ink-2)}
+.f1{--a:var(--cyan);--b:var(--violet)}
+.f2{--a:var(--mag);--b:var(--amber)}
+
+/* note */
+.tabs{display:flex;gap:10px}
+.tab{flex:1;min-width:0;min-height:58px;text-align:left;padding:8px 14px;cursor:pointer;border:1px solid var(--line);border-radius:6px 16px 6px 16px;background:rgba(255,255,255,.04);font:700 14px var(--f-display);letter-spacing:.05em;text-transform:uppercase}
+.tab small{display:block;font:500 11px var(--f-mono);letter-spacing:.06em;color:var(--ink-2);text-transform:none;margin-top:2px}
+.tab[aria-selected="true"]{border-color:var(--p1);background:rgba(46,230,255,.1);box-shadow:0 0 22px -8px var(--p1)}
+[data-form="2"] .tab[aria-selected="true"]{background:rgba(255,85,214,.1)}
+.gate .msg{min-height:1.4em;color:var(--bad);font-weight:700}
+
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;display:grid;gap:8px;padding:10px 14px;border-radius:6px 18px 6px 18px;
+  background:rgba(8,13,32,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:0 14px 28px -16px #000}
+.hud-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.clock{font:600 34px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--cyan);text-shadow:0 0 16px rgba(46,230,255,.55)}
+.hud-meta{font:500 12px var(--f-mono);color:var(--ink-2);text-align:right;font-variant-numeric:tabular-nums}
+.track{position:relative;height:10px;border-radius:99px;background:rgba(255,255,255,.08)}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 14px rgba(165,132,255,.6)}
+.fill.open{background:linear-gradient(90deg,var(--cyan),var(--ok))}
+.fill.late{background:linear-gradient(90deg,var(--ok),var(--amber));box-shadow:0 0 14px rgba(255,185,56,.6)}
+.fill.crit{background:linear-gradient(90deg,var(--amber),var(--mag));box-shadow:0 0 14px rgba(255,85,214,.7)}
+.notch{position:absolute;left:25%;top:-5px;bottom:-5px;width:2px;background:var(--ink)}
+.scale{position:relative;height:16px;font:500 11px var(--f-mono);color:var(--ink-2)}
+.scale span{position:absolute;top:0;white-space:nowrap}
+.scale .s0{left:0}.scale .s1{left:25%;padding-left:6px}.scale .s2{right:0}
+
+.steps{display:flex;gap:8px}
+.step{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.1)}
+.step.done{background:var(--a)}
+.step.now{background:transparent;border:1px solid var(--a);box-shadow:0 0 12px var(--a)}
+.stepl{display:flex;justify-content:space-between;font:500 11px var(--f-mono);color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+
+.pa0{--a:var(--cyan);--b:var(--violet)}
+.pa1{--a:var(--violet);--b:var(--mag)}
+.pa2{--a:var(--mag);--b:var(--amber)}
+.pa3{--a:var(--lime);--b:var(--cyan)}
+.pa4{--a:var(--amber);--b:var(--mag)}
+.part{display:flex;flex-direction:column;gap:14px;scroll-margin-top:150px;outline:none}
+.part-head{display:flex;flex-direction:column;gap:4px}
+.part-head h2{text-transform:uppercase}
+.doneflag{align-self:flex-start;font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dark-ink);background:var(--a);padding:4px 10px;border-radius:99px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0;list-style:none}
+.chips li{padding:6px 11px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-weight:700}
+.chips li span{display:block;font-weight:400;font-size:13px;color:var(--ink-2)}
+.chips.wide li{flex:1 1 220px}
+.tl{position:relative;padding-top:32px;margin:6px 0 2px}
+.tl-long{height:38px;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--violet));color:var(--dark-ink);display:flex;align-items:center;padding-left:16px;font-weight:700}
+.tl-short{position:absolute;left:66%;top:0;bottom:-6px;width:4px;border-radius:2px;background:var(--amber);box-shadow:0 0 12px var(--amber)}
+.tl-short span{position:absolute;top:-2px;left:50%;transform:translate(-50%,-100%);white-space:nowrap;font-size:13px;font-weight:700;color:var(--amber)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:460px){.duo{grid-template-columns:1fr}}
+.model{display:flex;flex-direction:column;gap:12px;font-size:18px}
+.model mark{background:var(--amber);color:var(--dark-ink);padding:0 4px;border-radius:4px;font-weight:700}
+
+.q{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:10px 18px 10px 18px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.qn{font:600 11px var(--f-mono);color:var(--a);letter-spacing:.12em}
+.qp{font-weight:700;font-size:18px}
+.blank{display:inline-block;min-width:3.2em;border-bottom:3px solid var(--a);margin:0 2px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.28);cursor:pointer;min-width:0}
+.opt input{width:20px;height:20px;margin:0;accent-color:var(--a);flex:none}
+.opt:has(input:checked){border-color:var(--a);box-shadow:0 0 0 1px var(--a) inset,0 0 18px -6px var(--a);background:rgba(255,255,255,.08)}
+.opt .tag{margin-left:auto;font:600 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;text-align:right}
+.opt.right{border-color:var(--ok);background:rgba(77,255,168,.12);box-shadow:none}
+.opt.wrong{border-color:var(--bad);background:rgba(255,122,140,.12);box-shadow:none}
+.opt.right .tag{color:var(--ok)}.opt.wrong .tag{color:var(--bad)}
+.why{padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);font-size:15px;color:var(--ink-2)}
+.skipped{font:600 12px var(--f-mono);color:var(--bad);letter-spacing:.06em;text-transform:uppercase}
+
+textarea.write{width:100%;min-height:240px;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.35);resize:vertical;line-height:1.6;font-size:18px}
+textarea.write:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.wc{font:500 13px var(--f-mono);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.checks{display:flex;flex-direction:column;gap:8px}
+.chk{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.28);cursor:pointer}
+.chk input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--a);flex:none}
+.starters{display:flex;flex-direction:column;gap:4px;margin:0;padding-left:20px}
+.doneZone{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.hint{font-size:15px;color:var(--amber);min-height:1.4em}
+
+.zone{display:flex;flex-direction:column;gap:12px}
+.warn{padding:12px;border-radius:10px;background:rgba(255,122,140,.12);border:1px solid var(--bad)}
+.shot{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:10px;border:1px dashed var(--amber);background:rgba(255,185,56,.08)}
+.shot b{color:var(--amber)}
+.pass{--a:var(--cyan);--b:var(--mag);display:flex;flex-direction:column;gap:14px}
+.pass-id{display:grid;gap:2px}
+.pass-id strong{font:700 clamp(20px,6vw,26px)/1.2 var(--f-display);overflow-wrap:anywhere}
+.score{font:900 clamp(60px,18vw,92px)/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--ok);text-shadow:0 0 28px rgba(77,255,168,.5)}
+.score small{font-size:.38em;color:var(--ink-2);text-shadow:none}
+.secscores{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.secscores div{padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.secscores b{display:block;font:700 22px var(--f-display);font-variant-numeric:tabular-nums}
+.stamp{font:500 12px/1.6 var(--f-mono);color:var(--ink-2);letter-spacing:.04em}
+.sync{padding:10px 12px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:16px}
+.sync.ok{border-color:var(--ok)}.sync.ok b:first-child{color:var(--ok)}
+.sync.bad{border-color:var(--bad)}.sync.bad b:first-child{color:var(--bad)}
+.mywriting{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid var(--line);font-size:17px}
+.foot{border-top:1px solid var(--line);padding-top:14px}
+.tier{--tc:var(--cyan);display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:8px 18px 8px 18px;border:1px solid var(--tc);background:rgba(255,255,255,.05);box-shadow:0 0 26px -12px var(--tc)}
+.tier.t4{--tc:var(--amber);background:linear-gradient(120deg,rgba(255,185,56,.2),rgba(255,85,214,.14))}
+.tier.t3{--tc:var(--cyan)}.tier.t2{--tc:var(--violet)}.tier.t1{--tc:var(--mag)}
+.tier-name{font:900 clamp(18px,5.5vw,24px)/1.1 var(--f-display);text-transform:uppercase;color:var(--tc);text-shadow:0 0 16px var(--tc)}
+.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ladder span{font:600 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:7px 2px;border-radius:6px;background:rgba(255,255,255,.07);color:var(--ink-2)}
+.ladder span.on{background:var(--tc);color:var(--dark-ink)}
+.music{position:fixed;z-index:15;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;min-height:46px;padding:0 16px;
+  border:1px solid var(--line);border-radius:6px 16px 6px 16px;background:rgba(8,13,32,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);cursor:pointer;box-shadow:0 10px 24px -12px #000}
+.music[aria-pressed="true"]{border-color:var(--cyan);box-shadow:0 0 20px -6px var(--cyan)}
+.is-result .music{position:relative;right:auto;bottom:auto;margin:28px auto 0;width:max-content}
+.eq{display:flex;align-items:flex-end;gap:2px;height:16px}
+.eq i{display:block;width:3px;height:4px;border-radius:2px;background:var(--ink-2)}
+.music[aria-pressed="true"] .eq i{background:var(--cyan);height:12px}
+@media (prefers-reduced-motion:no-preference){
+  .music[aria-pressed="true"] .eq i{animation:eq 1s ease-in-out infinite}
+  .music[aria-pressed="true"] .eq i:nth-child(2){animation-delay:.2s}
+  .music[aria-pressed="true"] .eq i:nth-child(3){animation-delay:.4s}
+  @keyframes eq{0%,100%{height:4px}50%{height:16px}}
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.fill{transition:width .9s linear}.fcard{transition:transform .15s}}
+@media (prefers-reduced-motion:reduce){.fcard{transition:none}}
+</style>
+
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<div class="page" id="app"></div>
+<div class="sr" role="status" aria-live="polite" id="status"></div>
+<button class="music" id="musicBtn" type="button" aria-pressed="false"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span id="musicTxt">Music off</span></button>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Settings ---------- */
+var MIN_MS = 15*60*1000;   // Check my answer opens after this
+var MAX_MS = 60*60*1000;   // session ends automatically after this
+var KEY = 'pdpr-nota-v2';
+// Paste your Apps Script Web app URL between the quotes. Leave it empty to run without sending results.
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyEkGC0Juv59CW5ROxxnQGE9F79RBXaMQhK2LeHTknuJ-6maMHLihmRGVc6Vcc1Obm15Q/exec';
+var CODE_HASH = {1:2240170925692745, 2:5427681974291814};
+function h53(str){var h1=0xdeadbeef,h2=0x41c6ce57;for(var i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);}
+function norm(s){ return String(s).toUpperCase().replace(/[^A-Z0-9]/g,''); }
+
+/* ---------- Content: FORM 1 ---------- */
+var F1_WORDS = '' +
+'<div class="stack">' +
+  '<h3>Weather words</h3>' +
+  '<ul class="chips">' +
+    '<li>sunny</li><li>cloudy</li><li>rainy</li><li>windy</li><li>stormy</li><li>snowy</li><li>wet</li><li>dry</li><li>warm</li>' +
+    '<li>foggy<span>thick white mist</span></li><li>icy<span>covered with ice</span></li><li>damp<span>a little wet</span></li>' +
+    '<li>heatwave<span>very hot weather for days</span></li><li>hailstones<span>small balls of ice from the sky</span></li>' +
+    '<li>blizzard<span>a snowstorm with strong wind</span></li><li>thunder and lightning</li>' +
+  '</ul>' +
+  '<h3>Natural disasters</h3>' +
+  '<ul class="chips wide">' +
+    '<li>flood<span>too much water covers the land</span></li>' +
+    '<li>drought<span>a long time with no rain</span></li>' +
+    '<li>earthquake<span>the ground shakes</span></li>' +
+    '<li>tornado<span>a strong spinning wind</span></li>' +
+    '<li>hurricane<span>a very strong storm with wind and rain</span></li>' +
+    '<li>tsunami<span>a giant wave from the sea</span></li>' +
+    '<li>volcano<span>a mountain with hot lava inside</span></li>' +
+    '<li>landslide<span>earth and rocks fall down a hill</span></li>' +
+    '<li>wildfire<span>a big fire in a forest</span></li>' +
+    '<li>avalanche<span>snow falls down a mountain</span></li>' +
+    '<li>famine<span>not enough food for many people</span></li>' +
+  '</ul>' +
+'</div>';
+
+var F1_GRAMMAR = '' +
+'<div class="stack">' +
+  '<div class="box"><span class="lab">Past simple &middot; a short, finished action</span>' +
+    '<p class="ex">Yesterday it <b>rained</b>. We <b>went</b> home.</p></div>' +
+  '<div class="box"><span class="lab">Past continuous &middot; was / were + verb-ing &middot; an action in progress</span>' +
+    '<p class="ex">It <b>was raining</b>. The children <b>were playing</b>.</p></div>' +
+  '<div class="box"><span class="lab">Together &middot; a short action comes in the middle of a long action</span>' +
+    '<div class="tl" role="img" aria-label="Diagram: a long action, was walking home, is interrupted by a short action, it started to rain.">' +
+      '<div class="tl-long">was walking home</div>' +
+      '<div class="tl-short"><span>it started to rain</span></div>' +
+    '</div>' +
+    '<p class="ex">I <b>was walking</b> home <b class="k">when</b> it <b>started</b> to rain.</p>' +
+    '<p class="ex"><b class="k">While</b> I <b>was walking</b> home, it <b>started</b> to rain.</p>' +
+    '<p class="note">when + short action (past simple). while + long action (past continuous).</p></div>' +
+  '<div class="box"><span class="lab">Negative and question</span>' +
+    '<p class="ex">She <b>wasn&rsquo;t</b> listening. They <b>weren&rsquo;t</b> playing.</p>' +
+    '<p class="ex"><b>Was</b> it raining? What <b>were</b> you doing?</p></div>' +
+'</div>';
+
+var F1_VOCAB = [
+ {id:'v1',p:'A very strong wind that turns round and round. It can destroy houses.',o:['drought','tornado','blizzard','famine'],a:[1],e:'A tornado is a strong spinning wind.'},
+ {id:'v2',p:'There is no rain for many months. The land is very dry.',o:['flood','landslide','drought','tsunami'],a:[2],e:'A drought is a long time with no rain.'},
+ {id:'v3',p:'The ground shakes and buildings fall down.',o:['wildfire','earthquake','hailstones','volcano'],a:[1],e:'In an earthquake, the ground shakes.'},
+ {id:'v4',p:'It is below zero degrees. The road is ___ and slippery.',o:['icy','sunny','dry','warm'],a:[0],e:'Icy means covered with ice. Ice makes the road slippery.'},
+ {id:'v5',p:'I cannot see the road because of the thick white mist. It is ___ today.',o:['windy','foggy','sunny','warm'],a:[1],e:'Foggy means there is thick white mist.'},
+ {id:'v6',p:'It rained for three days. The river is full and water is in the town. This is a ___.',o:['volcano','drought','tornado','flood'],a:[3],e:'In a flood, too much water covers the land.'}
+];
+var F1_GRAM = [
+ {id:'g1',p:'Yesterday, I ___ to the shop with my brother.',o:['go','went','was going','am going'],a:[1],e:'Yesterday is finished time. Use past simple: went.'},
+ {id:'g2',p:'While Dad ___ the car, Mum was reading a map.',o:['drove','was driving','drives','is driving'],a:[1],e:'Two long actions happen at the same time. Both use was / were + -ing.'},
+ {id:'g3',p:'They ___ football when it started to rain.',o:['played','was playing','were playing','play'],a:[2],e:'They takes were. The long action uses were playing.'},
+ {id:'g4',p:'She heard a loud noise while she ___ in the garden.',o:['worked','was working','were working','works'],a:[1],e:'while + long action. She takes was: was working.'},
+ {id:'g5',p:'We were watching TV when the lights ___.',o:['go out','were going out','went out','goes out'],a:[2],e:'The lights going out is a short action. Use past simple: went out.'},
+ {id:'g6',p:'Mei Ling ___ listening. She was talking to her friend.',o:['weren’t','wasn’t','didn’t','isn’t'],a:[1],e:'The negative of was is wasn’t.'},
+ {id:'g7',p:'What ___ you doing when the storm began?',o:['was','did','are','were'],a:[3],e:'You takes were. Question: What were you doing?'},
+ {id:'g8',p:'I was walking home ___ it started to rain.',o:['because','when','but','or'],a:[1],e:'when + short action: it started to rain.'},
+ {id:'g9',p:'Last week, there ___ a big flood in our town.',o:['is','are','was','were'],a:[2],e:'A big flood is singular. The past simple of is = was.'}
+];
+var F1_MODEL = '' +
+'<div class="box model">' +
+ '<p>Last Saturday, a big storm hit our town. <mark>First,</mark> I was sleeping when I heard thunder and lightning. I woke up and looked out of the window. The wind was blowing hard and the rain was falling fast.</p>' +
+ '<p><mark>Then</mark> my mother closed all the windows. <mark>After that,</mark> the lights went out, so we sat in the living room with a candle. <mark>Finally,</mark> the storm stopped at noon. The sun came out and we cleaned the garden. It was a scary day, but we were safe.</p>' +
+'</div>';
+var F1_SEQ_READ = '' +
+'<div class="stack">' +
+  '<h3>Sequencing words</h3>' +
+  '<ul class="chips"><li>First,</li><li>Then,</li><li>After that,</li><li>Finally,</li></ul>' +
+  '<p class="note">They show the order of events. Put a comma after them: <b>First,</b> we ran inside.</p>' +
+  '<h3>Model text: A Stormy Day</h3>' + F1_MODEL +
+'</div>';
+var F1_READQ = [
+ {id:'r1',p:'When did the storm happen?',o:['Last Sunday','Last Saturday','Last night','Yesterday morning'],a:[1],e:'The text starts: “Last Saturday, a big storm hit our town.”'},
+ {id:'r2',p:'What was the writer doing when thunder and lightning began?',o:['Cooking','Playing football','Sleeping','Watching TV'],a:[2],e:'“I was sleeping when I heard thunder and lightning.”'},
+ {id:'r3',p:'What did the family do after the lights went out?',o:['They cleaned the garden.','They closed the windows.','They went to school.','They sat in the living room.'],a:[3],e:'They closed the windows before the lights went out. After that, they sat in the living room.'},
+ {id:'r4',p:'When did the storm stop?',o:['At midnight','At noon','At 6 a.m.','At night'],a:[1],e:'“Finally, the storm stopped at noon.”'}
+];
+var SEQ_O = ['First','Then','After that','Finally'];
+var F1_SEQ = [
+ {id:'s1',p:'___, the rain fell for three days.',o:SEQ_O,a:[0],e:'First starts the story.'},
+ {id:'s2',p:'___, the river became full and water came into the houses.',o:SEQ_O,a:[1,2],e:'Then or After that. Both show the next event.'},
+ {id:'s3',p:'___, the villagers moved to the school hall.',o:SEQ_O,a:[1,2],e:'Then or After that. Both show the next event.'},
+ {id:'s4',p:'___, the water went down and everyone went home.',o:SEQ_O,a:[3],e:'Finally shows the last event.'}
+];
+var F1_SEQ_INTRO = '<div class="stack"><h3>A Flood in Kampung Baru</h3><p class="note">Choose the best sequencing word for each sentence. For the two middle sentences, Then and After that can both be correct.</p></div>';
+var F1_WRITE = '' +
+'<div class="stack">' +
+  '<h3>Task: A Stormy Day</h3>' +
+  '<p>Write <b>two paragraphs</b> (about <b>60 to 80 words</b>) about a storm or a flood. It can be real or imaginary.</p>' +
+  '<p><b>Paragraph 1:</b> When and where was it? What was the weather like? What were you doing when it started?</p>' +
+  '<p><b>Paragraph 2:</b> What happened next? Use First, Then, After that and Finally. How did you feel?</p>' +
+  '<h3>Word bank</h3>' +
+  '<ul class="chips"><li>stormy</li><li>heavy rain</li><li>strong wind</li><li>thunder and lightning</li><li>flood</li><li>shelter</li><li>the lights went out</li><li>scary</li><li>safe</li></ul>' +
+  '<h3>Sentence starters</h3>' +
+  '<ul class="starters"><li>Last ___, ...</li><li>I was ___ when ...</li><li>First, ... Then, ... After that, ... Finally, ...</li><li>It was a ___ day.</li></ul>' +
+'</div>';
+var F1_CHECKS = [
+  'I wrote two paragraphs.',
+  'I used past simple (for example: went, saw, heard).',
+  'I used was / were + -ing at least once (for example: was raining).',
+  'I used First, Then, After that and Finally.',
+  'Every sentence starts with a capital letter and ends with a full stop.'
+];
+
+/* ---------- Content: FORM 2 ---------- */
+var F2_WORDS = '' +
+'<div class="stack">' +
+  '<h3>Jobs and chores</h3>' +
+  '<ul class="chips"><li>babysit</li><li>pet sit</li><li>take dogs for walks</li><li>deliver newspapers</li><li>wash cars</li><li>do the gardening</li><li>clean the windows</li><li>do the ironing</li><li>do the washing up</li><li>lay the table</li><li>make the beds</li><li>tidy your room</li></ul>' +
+  '<h3>Money and shopping</h3>' +
+  '<ul class="chips wide">' +
+    '<li>earn<span>get money for work</span></li>' +
+    '<li>save<span>keep money for later</span></li>' +
+    '<li>spend<span>use money to buy things</span></li>' +
+    '<li>borrow<span>take money and give it back later</span></li>' +
+    '<li>lend<span>give money and get it back later</span></li>' +
+    '<li>swap<span>give one thing and take another</span></li>' +
+    '<li>cost<span>have a price</span></li>' +
+    '<li>win<span>get a prize in a game or race</span></li>' +
+    '<li>lose<span>not have something any more</span></li>' +
+    '<li>buy / sell / pay for / collect</li>' +
+  '</ul>' +
+'</div>';
+var F2_GRAMMAR = '' +
+'<div class="stack">' +
+  '<div class="box"><span class="lab">be going to &middot; plans</span>' +
+    '<p class="ex">I&rsquo;m <b>going to</b> buy a magazine with my pocket money.</p>' +
+    '<p class="ex">We <b>aren&rsquo;t going to</b> go on holiday this year.</p>' +
+    '<p class="ex"><b>Are</b> you <b>going to</b> babysit on Saturday? Yes, I am. / No, I&rsquo;m not.</p></div>' +
+  '<div class="box"><span class="lab">would like + to &middot; wishes and polite offers</span>' +
+    '<p class="ex">I<b>&rsquo;d like to</b> visit Canada.</p>' +
+    '<p class="ex">Jess <b>wouldn&rsquo;t like to</b> babysit.</p>' +
+    '<p class="ex"><b>Would</b> you <b>like to</b> go shopping? Yes, I <b>would</b>. / No, I <b>wouldn&rsquo;t</b>.</p></div>' +
+  '<div class="box"><span class="lab">Quantifiers &middot; how much and how many</span>' +
+    '<div class="duo">' +
+      '<div class="box"><b class="k">Countable</b><span class="note">friends, apples, books</span><p><b>many</b> &middot; <b>a few</b> &middot; <b>a lot of</b> &middot; <b>too many</b></p><p class="note">How <b>many</b> friends do you have?</p></div>' +
+      '<div class="box"><b class="k">Uncountable</b><span class="note">money, time, water</span><p><b>much</b> &middot; <b>a little</b> &middot; <b>a lot of</b> &middot; <b>too much</b></p><p class="note">How <b>much</b> money do you have?</p></div>' +
+    '</div></div>' +
+'</div>';
+var F2_VOCAB = [
+ {id:'v1',p:'You look after a family’s children for a few hours while their parents are out. This job is to ___.',o:['pet sit','do the ironing','babysit','lay the table'],a:[2],e:'To babysit means to look after children.'},
+ {id:'v2',p:'You do not have enough money, so your friend gives you RM5. You give it back next week. You ___ money from your friend.',o:['lend','borrow','earn','win'],a:[1],e:'You borrow money when you take it and give it back later.'},
+ {id:'v3',p:'You keep RM10 every week and do not use it. You ___ money.',o:['spend','lose','save','cost'],a:[2],e:'To save money means to keep it for later.'},
+ {id:'v4',p:'You give your old game to a friend and take his new game. You ___ games.',o:['swap','sell','win','pay for'],a:[0],e:'To swap means to exchange one thing for another.'},
+ {id:'v5',p:'How much does this shirt ___?',o:['earn','cost','borrow','win'],a:[1],e:'Cost is the price of something. The shirt costs RM35.'},
+ {id:'v6',p:'You get money for doing a job, for example delivering newspapers. You ___ money.',o:['lend','swap','earn','lose'],a:[2],e:'To earn money means to get money for work.'}
+];
+var F2_GRAM = [
+ {id:'g1',p:'Next week, I ___ buy a new bag with my pocket money.',o:['am going to','is going to','going to','was going to'],a:[0],e:'I takes am. Plan: I am going to + verb.'},
+ {id:'g2',p:'We ___ go on holiday this year. We do not have enough money.',o:['isn’t going to','aren’t going to','don’t going to','not going to'],a:[1],e:'We takes aren’t: aren’t going to.'},
+ {id:'g3',p:'___ you going to babysit on Saturday?',o:['Do','Is','Are','Will'],a:[2],e:'Question with going to: Are you going to ...?'},
+ {id:'g4',p:'I would ___ to visit Canada.',o:['like','liking','likes','to like'],a:[0],e:'would like + to + verb. After would we use the base form: like.'},
+ {id:'g5',p:'“Would you like to go shopping?” “Yes, I ___.”',o:['do','am','will','would'],a:[3],e:'Answer a would question with would: Yes, I would.'},
+ {id:'g6',p:'There isn’t ___ money in my wallet.',o:['many','a few','much','too many'],a:[2],e:'Money is uncountable. Use much in negative sentences.'},
+ {id:'g7',p:'I have ___ friends, so I never feel lonely.',o:['much','a lot of','a little','too much'],a:[1],e:'Friends is countable plural. A lot of works with it.'},
+ {id:'g8',p:'How ___ apples did you buy?',o:['much','many','little','any'],a:[1],e:'Apples are countable. Use How many.'},
+ {id:'g9',p:'I spent ___ money on snacks, so now I have nothing left.',o:['too many','a few','too few','too much'],a:[3],e:'Money is uncountable. Too much means more than you need.'}
+];
+var F2_MODEL = '' +
+'<div class="box model">' +
+ '<p>I get RM30 pocket money every month. <mark>I think</mark> it is important to save money, <mark>because</mark> money is not easy to earn. I&rsquo;m going to save RM10 every month. I would like to buy a new bicycle next year.</p>' +
+ '<p>I&rsquo;m not going to spend too much money on snacks. <mark>In my opinion,</mark> a few snacks a week are enough. I&rsquo;m also going to earn extra money. <mark>For example,</mark> I&rsquo;ll wash my neighbour&rsquo;s car on Sundays. <mark>I believe</mark> this plan is good, because I will learn to manage my money.</p>' +
+'</div>';
+var F2_MODEL_READ = '' +
+'<div class="stack">' +
+  '<h3>Opinion and linking words</h3>' +
+  '<ul class="chips"><li>I think ...</li><li>I believe ...</li><li>In my opinion, ...</li><li>because</li><li>For example, ...</li></ul>' +
+  '<p class="note">Use them to give your opinion and your reasons.</p>' +
+  '<h3>Model text: My Pocket Money Plan</h3>' + F2_MODEL +
+'</div>';
+var F2_READQ = [
+ {id:'r1',p:'How much pocket money does the writer get?',o:['RM10 every week','RM30 every month','RM30 every week','RM10 every month'],a:[1],e:'“I get RM30 pocket money every month.”'},
+ {id:'r2',p:'What would the writer like to buy next year?',o:['A new phone','A new bag','A new bicycle','A new game'],a:[2],e:'“I would like to buy a new bicycle next year.”'},
+ {id:'r3',p:'How is the writer going to earn extra money?',o:['By babysitting','By washing a neighbour’s car','By delivering newspapers','By selling old toys'],a:[1],e:'“I’ll wash my neighbour’s car on Sundays.”'},
+ {id:'r4',p:'What does the writer think about snacks?',o:['A few snacks a week are enough.','Snacks are too expensive.','He should buy snacks every day.','He will never buy snacks.'],a:[0],e:'“In my opinion, a few snacks a week are enough.”'}
+];
+var F2_OPIN = [
+ {id:'o1',p:'I ___ it is important to save money.',o:['thinks','think','thinking','am think'],a:[1],e:'I + think. We say: I think ...'},
+ {id:'o2',p:'I want to save money ___ I would like to buy a bicycle.',o:['but','or','because','if'],a:[2],e:'because gives a reason.'},
+ {id:'o3',p:'___ my opinion, a few snacks a week are enough.',o:['On','At','By','In'],a:[3],e:'The phrase is: In my opinion.'},
+ {id:'o4',p:'I’m going to earn money. ___ example, I’ll wash cars.',o:['For','On','In','At'],a:[0],e:'The phrase is: For example.'}
+];
+var F2_OPIN_INTRO = '<div class="stack"><h3>Choose the best word</h3><p class="note">These small words connect your ideas. You will use them in your writing.</p></div>';
+var F2_WRITE = '' +
+'<div class="stack">' +
+  '<h3>Task: My Pocket Money Plan</h3>' +
+  '<p>Write <b>two paragraphs</b> (about <b>70 to 90 words</b>) about your plan for your pocket money. It can be real or imaginary.</p>' +
+  '<p><b>Paragraph 1:</b> How much money do you get? What do you think about saving money? What would you like to buy?</p>' +
+  '<p><b>Paragraph 2:</b> What are you going to save or spend? How are you going to earn extra money? Why is your plan good?</p>' +
+  '<h3>Word bank</h3>' +
+  '<ul class="chips"><li>pocket money</li><li>save</li><li>spend</li><li>earn</li><li>borrow</li><li>a lot of</li><li>a few</li><li>too much</li><li>too many</li></ul>' +
+  '<h3>Sentence starters</h3>' +
+  '<ul class="starters"><li>I get RM___ every ___.</li><li>I think ... because ...</li><li>I&rsquo;m going to ...</li><li>I would like to ...</li><li>In my opinion, ...</li><li>For example, ...</li></ul>' +
+'</div>';
+var F2_CHECKS = [
+  'I wrote two paragraphs.',
+  'I used I’m going to for my plans.',
+  'I used would like to at least once.',
+  'I gave my opinion with I think / In my opinion and a reason with because.',
+  'I used at least one quantifier (much, many, a lot of, a few, too much).',
+  'Every sentence starts with a capital letter and ends with a full stop.'
+];
+
+var CONTENT = {
+ 1:{name:'Wild Weather',theme:'Health and Environment',checks:F1_CHECKS,days:{
+   1:{parts:[
+     {title:'Weather and disasters words',min:5,html:F1_WORDS,qs:[]},
+     {title:'Past simple and past continuous',min:8,html:F1_GRAMMAR,qs:[]},
+     {title:'Vocabulary check',min:10,qs:F1_VOCAB},
+     {title:'Grammar check',min:15,qs:F1_GRAM}]},
+   2:{parts:[
+     {title:'Sequencing words and model text',min:6,html:F1_SEQ_READ,qs:[]},
+     {title:'Reading check',min:8,qs:F1_READQ},
+     {title:'Sequencing practice',min:6,html:F1_SEQ_INTRO,qs:F1_SEQ},
+     {title:'Write your recount',min:20,html:F1_WRITE,qs:[],writing:true,minWords:30}]}
+ }},
+ 2:{name:'Smart Money',theme:'Consumerism and Financial Awareness',checks:F2_CHECKS,days:{
+   1:{parts:[
+     {title:'Money words',min:5,html:F2_WORDS,qs:[]},
+     {title:'Going to, would like and quantifiers',min:8,html:F2_GRAMMAR,qs:[]},
+     {title:'Vocabulary check',min:8,qs:F2_VOCAB},
+     {title:'Grammar check',min:14,qs:F2_GRAM}]},
+   2:{parts:[
+     {title:'Opinion words and model text',min:6,html:F2_MODEL_READ,qs:[]},
+     {title:'Reading check',min:6,qs:F2_READQ},
+     {title:'Opinion and linking words',min:5,html:F2_OPIN_INTRO,qs:F2_OPIN},
+     {title:'Write your plan',min:20,html:F2_WRITE,qs:[],writing:true,minWords:30}]}
+ }}
+};
+
+/* ---------- State ---------- */
+var mem=null;
+function blankDay(){ return {unlocked:false,startTs:0,doneParts:0,answers:{},writing:'',checks:[],submittedTs:0,reason:'',usedMs:0,score:null,sync:null}; }
+function freshState(){ return {who:{name:'',cls:''},forms:{1:{1:blankDay(),2:blankDay()},2:{1:blankDay(),2:blankDay()}},ui:{view:'home',f:1,d:1}}; }
+function valid(o){ try{ return o&&o.who&&o.forms&&o.forms[1]&&o.forms[1][1]&&o.forms[1][2]&&o.forms[2]&&o.forms[2][1]&&o.forms[2][2]&&o.ui; }catch(e){ return false; } }
+function load(){
+  var raw=null; try{ raw=localStorage.getItem(KEY); }catch(e){}
+  if(raw){ try{ var o=JSON.parse(raw); if(valid(o)) return o; }catch(e){} }
+  return mem||freshState();
+}
+function save(){ mem=state; try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+var state=load();
+var confirming=false, announced={}, resetAsk=(location.hash==='#reset');
+
+/* ---------- Helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function pad(n){ return (n<10?'0':'')+n; }
+function fmt(ms){ var s=Math.max(0,Math.ceil(ms/1000)); return pad(Math.floor(s/60))+':'+pad(s%60); }
+function stampOf(ts){ var d=new Date(ts); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function wordCount(t){ return String(t||'').trim().split(/\s+/).filter(Boolean).length; }
+function D(f,d){ return state.forms[f][d]; }
+function parts(f,d){ return CONTENT[f].days[d].parts; }
+function allQs(f,d){ var a=[]; parts(f,d).forEach(function(p){ p.qs.forEach(function(q){a.push(q);}); }); return a; }
+function elapsed(f,d){ var s=D(f,d); return s.startTs?Math.max(0,Date.now()-s.startTs):0; }
+function running(f,d){ var s=D(f,d); return s.unlocked&&!s.submittedTs; }
+function isRight(q,v){ return typeof v==='number'&&q.a.indexOf(v)>-1; }
+function computeScore(f,d){
+  var s=D(f,d), total=0, max=0, secs=[];
+  parts(f,d).forEach(function(p){
+    if(!p.qs.length) return; var got=0;
+    p.qs.forEach(function(q){ if(isRight(q,s.answers[q.id])) got++; });
+    secs.push({title:p.title,got:got,max:p.qs.length}); total+=got; max+=p.qs.length;
+  });
+  return {total:total,max:max,secs:secs};
+}
+function partReady(f,d,i){
+  var p=parts(f,d)[i], s=D(f,d), miss=0;
+  p.qs.forEach(function(q){ if(typeof s.answers[q.id]!=='number') miss++; });
+  if(miss) return {ok:false,msg:'Answer all '+p.qs.length+' questions to continue. '+miss+' left.'};
+  if(p.writing){ var w=wordCount(s.writing); if(w<p.minWords) return {ok:false,msg:'Write at least '+p.minWords+' words to continue. You have '+w+'.'}; }
+  return {ok:true,msg:''};
+}
+function dayStatus(f,d){ var s=D(f,d); return s.submittedTs?'Done':(s.unlocked?'In progress':'Locked'); }
+
+/* ---------- Result level ---------- */
+function tierOf(f,d,sc){
+  var pct=sc.max?sc.total/sc.max:0;
+  if(pct===1) return {lvl:4,name:'Top scorer',msg:'Perfect score! You are among the top mark students.'};
+  if(pct>=0.8) return {lvl:3,name:'High achiever',msg:'Excellent work. You are very close to the top. Check the questions you missed below.'};
+  if(pct>=0.5) return {lvl:2,name:'Good progress',msg:'Good effort. Read the explanations below to learn from the questions you missed.'};
+  return {lvl:1,name:'Keep practising',msg:'Read the notes again and study the explanations below. Ask your teacher if you need help.'};
+}
+function tierHTML(f,d,sc){
+  var t=tierOf(f,d,sc), L=['Practise','Good','High','Top'], h='';
+  for(var i=1;i<=4;i++) h+='<span'+(i===t.lvl?' class="on"':'')+'>'+L[i-1]+'</span>';
+  return '<div class="tier t'+t.lvl+'"><span class="tier-name">'+t.name+'</span><p>'+esc(t.msg)+(d===2?' Your writing will be marked by your teacher.':'')+'</p><div class="ladder" aria-hidden="true">'+h+'</div></div>';
+}
+
+/* ---------- Music: made in the browser, no audio files ---------- */
+var Music=(function(){
+  var ctx=null, master=null, bus=null, timer=null, on=false, step=0, nextT=0, pref=true;
+  try{ if(localStorage.getItem('pdpr-music')==='0') pref=false; }catch(e){}
+  var EIGHTH=60/84/2;
+  var CH=[{b:45,p:[57,60,64]},{b:41,p:[53,57,60]},{b:48,p:[55,60,64]},{b:43,p:[55,59,62]}];
+  var ARP=[0,1,2,1,2,1,0,2];
+  function hz(n){ return 440*Math.pow(2,(n-69)/12); }
+  function ensure(){
+    if(ctx) return true;
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
+    try{
+      ctx=new AC(); master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+      bus=ctx.createGain(); bus.connect(master);
+      var dl=ctx.createDelay(1), fb=ctx.createGain(), wet=ctx.createGain();
+      dl.delayTime.value=EIGHTH*1.5; fb.gain.value=.35; wet.gain.value=.45;
+      bus.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(master);
+      return true;
+    }catch(e){ ctx=null; return false; }
+  }
+  function note(t,freq,dur,type,vol,dest,att){
+    var o=ctx.createOscillator(), g=ctx.createGain(); o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(vol,t+att); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+0.05);
+  }
+  function schedule(){
+    while(nextT<ctx.currentTime+0.25){
+      var bar=Math.floor(step/8)%4, k=step%8, ch=CH[bar];
+      if(k===0){
+        var f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1200; f.connect(master);
+        ch.p.forEach(function(n){ note(nextT,hz(n),EIGHTH*8,'triangle',.06,f,.5); note(nextT,hz(n)*1.004,EIGHTH*8,'sine',.05,f,.5); });
+        note(nextT,hz(ch.b),EIGHTH*7,'sine',.17,master,.05);
+      }
+      note(nextT,hz(ch.p[ARP[k]]+12),EIGHTH*1.8,'triangle',.07,bus,.01);
+      nextT+=EIGHTH; step++;
+    }
+  }
+  function ui(){
+    var b=$('musicBtn'), t=$('musicTxt'); if(!b) return;
+    b.setAttribute('aria-pressed',on?'true':'false'); t.textContent=on?'Music on':'Music off';
+  }
+  function start(){
+    if(!ensure()) return;
+    try{ ctx.resume(); }catch(e){}
+    on=true; pref=true; try{ localStorage.setItem('pdpr-music','1'); }catch(e){}
+    master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(.35,ctx.currentTime,.5);
+    nextT=ctx.currentTime+0.1;
+    if(!timer) timer=setInterval(function(){ if(on&&ctx.state==='running') schedule(); },60);
+    ui();
+  }
+  function stop(){
+    on=false; pref=false; try{ localStorage.setItem('pdpr-music','0'); }catch(e){}
+    if(ctx){ master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setTargetAtTime(0,ctx.currentTime,.2); }
+    ui();
+  }
+  function chime(lvl){
+    if(!on||!ctx||ctx.state!=='running') return;
+    var seq=lvl===4?[72,76,79,84]:(lvl===3?[72,76,79]:[67,72]), t=ctx.currentTime+0.05;
+    seq.forEach(function(n,i){ note(t+i*.14,hz(n),1,'sine',.14,master,.01); });
+  }
+  function first(e){ if(pref&&!on&&!(e.target.closest&&e.target.closest('#musicBtn'))) start(); }
+  document.addEventListener('pointerdown',first,{once:true});
+  document.addEventListener('keydown',first,{once:true});
+  document.addEventListener('visibilitychange',function(){
+    if(!ctx) return;
+    if(document.hidden){ try{ ctx.suspend(); }catch(e){} } else if(on){ try{ ctx.resume(); }catch(e){} }
+  });
+  var btn=$('musicBtn'); if(btn) btn.addEventListener('click',function(){ if(on) stop(); else start(); });
+  ui();
+  return {chime:chime};
+})();
+
+/* ---------- Home ---------- */
+function homeHTML(){
+  var w=state.who, ok=!!(w.name.trim()&&w.cls.trim());
+  function card(f){
+    var C=CONTENT[f];
+    return '<button class="fcard f'+f+'" data-act="form" data-f="'+f+'"'+(ok?'':' disabled')+'>' +
+      '<span class="num">FORM '+f+'</span><span class="topic">'+C.name+'</span>' +
+      '<span class="note">'+C.theme+'</span>' +
+      '<span class="st">Day 1: '+dayStatus(f,1)+'<br>Day 2: '+dayStatus(f,2)+'</span></button>';
+  }
+  var h='<header class="hero"><p class="eyebrow" style="--a:var(--cyan)">PDPR &middot; English &middot; Forms 1 and 2</p>' +
+    '<h1>Digital Note</h1>' +
+    '<p class="sub">Read each part, answer the questions and click DONE to open the next part. Type your name, then choose your form.</p></header>' +
+    '<section class="panel stack" style="--a:var(--violet);--b:var(--cyan)"><div class="row2">' +
+      '<div class="field"><label for="nm">Your name</label><input id="nm" autocomplete="off" maxlength="60" value="'+esc(w.name)+'"></div>' +
+      '<div class="field"><label for="cl">Your class</label><input id="cl" autocomplete="off" maxlength="20" placeholder="Example: 1 Beryl" value="'+esc(w.cls)+'"></div>' +
+    '</div></section>' +
+    '<div class="forms">'+card(1)+card(2)+'</div>';
+  if(resetAsk) h+='<div class="warn stack"><p><b>Reset this device?</b> All answers and sessions for Form 1 and Form 2 will be deleted.</p><div class="btns"><button class="btn" data-act="reset-do">Yes, reset</button><button class="btn ghost" data-act="reset-cancel">Cancel</button></div></div>';
+  return h+'<footer class="foot note">Your progress is saved on this device and browser only.</footer>';
+}
+
+/* ---------- Note view ---------- */
+function qHTML(q,f,d,review,idx){
+  var s=D(f,d), saved=s.answers[q.id];
+  var p=esc(q.p).replace('___','<span class="blank">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+  var h='<div class="q" role="group" aria-labelledby="qp-'+q.id+'"><span class="qn">QUESTION '+idx+'</span><p class="qp" id="qp-'+q.id+'">'+p+'</p>';
+  if(review&&typeof saved!=='number') h+='<p class="skipped">Not answered</p>';
+  h+='<div class="opts">';
+  q.o.forEach(function(o,i){
+    var cls='opt', tag='';
+    if(review){
+      if(q.a.indexOf(i)>-1){ cls+=' right'; tag=saved===i?'Correct &middot; your answer':'Correct answer'; }
+      else if(saved===i){ cls+=' wrong'; tag='Your answer'; }
+    }
+    h+='<label class="'+cls+'"><input type="radio" name="'+q.id+'" value="'+i+'" data-q="'+q.id+'"'+(saved===i?' checked':'')+(review?' disabled':'')+'><span>'+esc(o)+'</span>'+(tag?'<span class="tag">'+tag+'</span>':'')+'</label>';
+  });
+  h+='</div>'+(review?'<p class="why">'+esc(q.e)+'</p>':'')+'</div>';
+  return h;
+}
+function writingHTML(f,d){
+  var s=D(f,d), checks=CONTENT[f].checks;
+  var h='<div class="stack"><label for="writing" class="eyebrow">Write here</label>' +
+    '<textarea class="write" id="writing" lang="en" spellcheck="true" autocomplete="off" placeholder="Start writing...">'+esc(s.writing)+'</textarea>' +
+    '<p class="wc" id="wc">'+wordCount(s.writing)+' words</p>' +
+    '<h3>Check your own writing</h3><div class="checks">';
+  checks.forEach(function(c,i){ h+='<label class="chk"><input type="checkbox" data-check="'+i+'"'+(s.checks[i]?' checked':'')+'><span>'+esc(c)+'</span></label>'; });
+  return h+'</div></div>';
+}
+function partsHTML(f,d,review){
+  var s=D(f,d), P=parts(f,d), N=P.length, show=review?N:Math.min(s.doneParts+1,N), h='', n=0;
+  // question numbering runs across the whole day
+  var counts=[]; P.forEach(function(p){ counts.push(n); n+=p.qs.length; });
+  for(var i=0;i<show;i++){
+    var p=P[i], isNow=!review&&i===s.doneParts;
+    h+='<section class="panel part pa'+(i%5)+'" id="part-'+i+'" tabindex="-1"><div class="part-head">' +
+       '<span class="eyebrow">Part '+(i+1)+' of '+N+' &middot; about '+p.min+' min</span><h2>'+esc(p.title)+'</h2>'+
+       (!review&&i<s.doneParts?'<span class="doneflag">Done</span>':'')+'</div>';
+    if(p.html) h+=p.html;
+    p.qs.forEach(function(q,k){ h+=qHTML(q,f,d,review,counts[i]+k+1); });
+    if(p.writing&&!review) h+=writingHTML(f,d);
+    if(isNow){
+      var r=partReady(f,d,i);
+      h+='<div class="doneZone"><button class="btn" id="doneBtn" data-act="done"'+(r.ok?'':' disabled')+'>DONE</button><p class="hint" id="doneHint">'+esc(r.msg)+'</p></div>';
+    }
+    h+='</section>';
+  }
+  return h;
+}
+function stepsHTML(f,d){
+  var s=D(f,d), N=parts(f,d).length, h='<div class="stack"><div class="steps" aria-hidden="true">';
+  for(var i=0;i<N;i++){ h+='<span class="step pa'+(i%5)+' '+(i<s.doneParts?'done':(i===s.doneParts?'now':''))+'"></span>'; }
+  return h+'</div><div class="stepl"><span>Part '+Math.min(s.doneParts+1,N)+' of '+N+'</span><span>'+s.doneParts+' done</span></div></div>';
+}
+function hudHTML(f,d){
+  return '<div class="hud" id="hud"><div class="hud-row"><div><span class="eyebrow" style="--a:var(--ink-2)">Time left</span><div class="clock" id="clock">60:00</div></div>' +
+    '<div class="hud-meta" id="hudMeta"></div></div>' +
+    '<div class="track" aria-hidden="true"><div class="fill" id="fill"></div><div class="notch"></div></div>' +
+    '<div class="scale" aria-hidden="true"><span class="s0">0</span><span class="s1">15:00 Check opens</span><span class="s2">60:00 End</span></div></div>';
+}
+function checkZoneHTML(f,d){
+  var el=elapsed(f,d), open=el>=MIN_MS;
+  if(confirming) return '<div class="panel zone pa3"><h2>Check your answers now?</h2><p>After this you cannot change your answers.</p><div class="btns"><button class="btn" data-act="do-check">Yes, check</button><button class="btn ghost" data-act="cancel-check">Go back</button></div></div>';
+  return '<div class="panel zone pa3" id="checkPanel"><span class="eyebrow">All parts done</span><h2>Ready to check?</h2>' +
+    '<p class="note" id="checkNote">'+(open?'You can check your answers now. Look at your answers one more time if you still have time.':'You have finished all the parts. The button opens after 15 minutes. Use the time to read your answers again.')+'</p>' +
+    '<div class="btns"><button class="btn" id="checkBtn" data-act="ask-check"'+(open?'':' disabled')+'>'+(open?'Check my answer':'Check my answer in '+fmt(MIN_MS-el))+'</button></div></div>';
+}
+function gateHTML(f,d){
+  return '<section class="panel stack gate pa'+(d===1?0:2)+'"><span class="eyebrow">Day '+d+' &middot; Locked</span><h2>Enter your access code</h2>' +
+    '<p>Your teacher will give you the code. Your <b>60-minute session starts as soon as you unlock</b>.</p>' +
+    '<ul class="rules"><li>The session ends automatically when the 60 minutes are over.</li>' +
+    '<li>Read each part, then click <b>DONE</b> to open the next part.</li>' +
+    '<li>Answer every question in a part before you click DONE.</li>' +
+    '<li>The <b>Check my answer</b> button opens after 15 minutes.</li>' +
+    '<li>At the end, take a screenshot of your result and upload it to Google Classroom.</li></ul>' +
+    '<div class="field"><label for="code">Access code</label><input id="code" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>' +
+    '<p class="msg" id="codeMsg" role="alert"></p>' +
+    '<div class="btns"><button class="btn" data-act="unlock">Unlock Day '+d+'</button></div></section>';
+}
+function resultHTML(f,d){
+  var s=D(f,d), sc=s.score||computeScore(f,d), C=CONTENT[f], checks=0;
+  for(var i=0;i<C.checks.length;i++) if(s.checks[i]) checks++;
+  var h='<div class="shot"><div><b>Next step:</b> take a screenshot of your result card below and upload it to Google Classroom.' +
+    (d===2?' Your writing is on the card. If it is long, take two screenshots so your name, score and writing are all clear.':'')+'</div></div>' +
+    '<section class="panel pass"><div class="pass-id"><span class="eyebrow">Result &middot; Form '+f+' &middot; '+esc(C.name)+' &middot; Day '+d+'</span>' +
+    '<strong>'+esc(state.who.name)+'</strong><span class="note">Class: '+esc(state.who.cls)+'</span></div>' +
+    '<div class="score">'+sc.total+'<small> / '+sc.max+'</small></div>'+tierHTML(f,d,sc)+'<div class="secscores">';
+  sc.secs.forEach(function(x){ h+='<div><b>'+x.got+'/'+x.max+'</b><span class="note">'+esc(x.title)+'</span></div>'; });
+  if(d===2) h+='<div><b>'+wordCount(s.writing)+'</b><span class="note">Words written</span></div><div><b>'+checks+'/'+C.checks.length+'</b><span class="note">Self-check</span></div>';
+  h+='</div>';
+  if(d===2) h+='<div class="stack"><span class="eyebrow">My writing</span><div class="mywriting">'+esc(s.writing||'(nothing written)')+'</div></div>';
+  h+='<p class="stamp">Submitted: '+stampOf(s.submittedTs)+'<br>Time used: '+fmt(s.usedMs)+(s.reason==='timeup'?' &middot; time is up, session ended automatically':'')+'</p><div id="syncBox">'+syncHTML(s)+'</div></section>' +
+    '<div class="stack"><span class="eyebrow" style="--a:var(--violet)">Review</span><h2>Your answers and explanations</h2></div>';
+  return h;
+}
+function gateOrSession(f,d){
+  var s=D(f,d);
+  if(!s.unlocked) return gateHTML(f,d);
+  if(!s.submittedTs){
+    var N=parts(f,d).length;
+    return hudHTML(f,d)+stepsHTML(f,d)+partsHTML(f,d,false)+(s.doneParts>=N?'<div id="checkZone">'+checkZoneHTML(f,d)+'</div>':'');
+  }
+  return resultHTML(f,d)+partsHTML(f,d,true);
+}
+function noteHTML(){
+  var f=state.ui.f, d=state.ui.d, C=CONTENT[f];
+  function tab(x){ return '<button class="tab" role="tab" data-act="day" data-d="'+x+'" aria-selected="'+(d===x)+'">Day '+x+'<small>'+dayStatus(f,x)+'</small></button>'; }
+  return '<div><button class="back" data-act="home">&lsaquo; Change form</button></div>' +
+    '<header class="hero"><p class="eyebrow" style="--a:var(--p1)">Form '+f+' &middot; '+C.theme+'</p><h1>'+C.name+'</h1></header>' +
+    '<div class="tabs" role="tablist" aria-label="Choose day">'+tab(1)+tab(2)+'</div>' +
+    gateOrSession(f,d) +
+    '<footer class="foot note">Your progress is saved on this device and browser only.</footer>';
+}
+
+/* ---------- Render and live updates ---------- */
+var app=$('app');
+function render(){
+  app.setAttribute('data-form',state.ui.view==='note'?String(state.ui.f):'0');
+  app.innerHTML=state.ui.view==='note'?noteHTML():homeHTML();
+  document.body.classList.toggle('is-result',state.ui.view==='note'&&!!D(state.ui.f,state.ui.d).submittedTs);
+  save(); updateLive(); tick();
+}
+function updateLive(){
+  if(state.ui.view!=='note') return;
+  var f=state.ui.f,d=state.ui.d,s=D(f,d); if(!s.unlocked||s.submittedTs) return;
+  var qs=allQs(f,d), a=0, N=parts(f,d).length;
+  qs.forEach(function(q){ if(typeof s.answers[q.id]==='number') a++; });
+  var m=$('hudMeta'); if(m) m.innerHTML='Part '+Math.min(s.doneParts+1,N)+'/'+N+'<br>Answered '+a+'/'+qs.length;
+  if(s.doneParts<N){
+    var r=partReady(f,d,s.doneParts), b=$('doneBtn'), hint=$('doneHint');
+    if(b) b.disabled=!r.ok; if(hint) hint.textContent=r.msg;
+  }
+}
+function finalize(f,d,reason){
+  var s=D(f,d); if(!s.unlocked||s.submittedTs) return;
+  s.usedMs=Math.min(elapsed(f,d),MAX_MS); s.submittedTs=Date.now(); s.reason=reason; s.score=computeScore(f,d);
+  s.sync=SHEET_URL?{st:'pending',rank:null,err:'',tries:0,last:0}:null;
+  confirming=false; save();
+  var here=state.ui.view==='note'&&state.ui.f===f&&state.ui.d===d;
+  if(here){ render(); window.scrollTo(0,0); Music.chime(tierOf(f,d,s.score).lvl);$('status').textContent=reason==='timeup'?'Time is up. Your session has ended.':'Your result is ready.'; }
+  else if(state.ui.view==='note'||state.ui.view==='home') render();
+  send(f,d);
+}
+
+/* ---------- Send result to the teacher's Google Sheet ---------- */
+var inflight={};
+function payloadOf(f,d){
+  var s=D(f,d), sc=s.score||computeScore(f,d), C=CONTENT[f], chk=0;
+  for(var i=0;i<C.checks.length;i++) if(s.checks[i]) chk++;
+  return {action:'SUBMIT_RESULT',form:f,day:d,name:state.who.name,cls:state.who.cls,answers:s.answers,clientScore:sc.total,
+    level:tierOf(f,d,sc).name,usedMs:s.usedMs,reason:s.reason,submittedAt:stampOf(s.submittedTs),
+    writing:d===2?s.writing:'',words:d===2?wordCount(s.writing):0,selfCheck:d===2?chk:0};
+}
+function syncHTML(s){
+  if(!SHEET_URL||!s||!s.sync) return '';
+  var y=s.sync, r=y.rank;
+  if(y.st==='sent'){
+    var h='<p class="sync ok"><b>Sent to your teacher.</b>';
+    if(r&&r.duplicate) h+=' <span class="note">Your result was already received earlier.</span>';
+    if(r&&r.totalOverall){
+      h+='<br>Rank: <b>'+r.rankOverall+'</b> of '+r.totalOverall+' students';
+      if(r.totalClass>0) h+='<br>In '+esc(r.classLabel||state.who.cls)+': <b>'+r.rankClass+'</b> of '+r.totalClass;
+      h+='<br><span class="note">Rank at the time you submitted. It is based on the score above.</span>';
+    }
+    return h+'</p>';
+  }
+  if(y.st==='failed') return '<p class="sync bad"><b>Not sent yet.</b> '+esc(y.err||'')+' We will try again automatically. Keep this page open.</p><div class="btns"><button class="btn ghost" data-act="retry">Send again</button></div>';
+  return '<p class="sync">Sending your result to your teacher...</p>';
+}
+function updateSync(f,d){
+  if(state.ui.view!=='note'||state.ui.f!==f||state.ui.d!==d) return;
+  var b=$('syncBox'); if(b) b.innerHTML=syncHTML(D(f,d));
+}
+function send(f,d){
+  var s=D(f,d); if(!SHEET_URL||!s.submittedTs) return;
+  var k=f+'-'+d; if(inflight[k]) return;
+  var tries=(s.sync&&s.sync.tries||0)+1;
+  inflight[k]=true; s.sync={st:'pending',rank:null,err:'',tries:tries,last:Date.now()}; save(); updateSync(f,d);
+  var ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var to=setTimeout(function(){ if(ctl) ctl.abort(); },25000);
+  function fail(msg){ clearTimeout(to); inflight[k]=false; s.sync={st:'failed',rank:null,err:msg,tries:tries,last:Date.now()}; save(); updateSync(f,d); }
+  fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payloadOf(f,d)),signal:ctl?ctl.signal:undefined})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      clearTimeout(to); inflight[k]=false;
+      if(r&&r.ok){ s.sync={st:'sent',rank:r,err:'',tries:tries,last:Date.now()}; save(); updateSync(f,d); }
+      else fail((r&&r.error)||'The server did not accept it.');
+    })
+    .catch(function(){ fail('No connection.'); });
+}
+function tick(){
+  [1,2].forEach(function(f){ [1,2].forEach(function(d){ if(running(f,d)&&elapsed(f,d)>=MAX_MS) finalize(f,d,'timeup'); }); });
+  if(SHEET_URL) [1,2].forEach(function(f){ [1,2].forEach(function(d){
+    var s=D(f,d), y=s.sync;
+    if(s.submittedTs&&y&&(y.st==='pending'||y.st==='failed')&&!inflight[f+'-'+d]&&y.tries<6&&Date.now()-y.last>20000) send(f,d);
+  }); });
+  if(state.ui.view!=='note') return;
+  var f=state.ui.f,d=state.ui.d; if(!running(f,d)) return;
+  var c=$('clock'); if(!c) return;
+  var el=elapsed(f,d), left=MAX_MS-el, open=el>=MIN_MS;
+  c.textContent=fmt(left);
+  var fl=$('fill'); fl.style.width=Math.min(100,el/MAX_MS*100)+'%';
+  fl.className='fill'+(left<=3*60000?' crit':(left<=10*60000?' late':(open?' open':'')));
+  var b=$('checkBtn');
+  if(b){ b.disabled=!open; b.textContent=open?'Check my answer':'Check my answer in '+fmt(MIN_MS-el); }
+  var n=$('checkNote'); if(n&&open) n.textContent='You can check your answers now. Look at your answers one more time if you still have time.';
+  var key=f+'-'+d;
+  if(open&&!announced[key]){ announced[key]=true; $('status').textContent='The Check my answer button is now open.'; }
+}
+setInterval(tick,1000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) tick(); });
+
+/* ---------- Events ---------- */
+function goPart(i){
+  var el=$('part-'+i)||$('checkZone');
+  if(el){ el.scrollIntoView({behavior:'smooth',block:'start'}); try{ el.focus({preventScroll:true}); }catch(e){} }
+}
+function tryUnlock(){
+  var f=state.ui.f,d=state.ui.d, v=norm($('code').value), msg=$('codeMsg');
+  if(!v){ msg.textContent='Type the access code first.'; return; }
+  if(h53(v)!==CODE_HASH[d]){ msg.textContent='That code is not correct. Check it with your teacher and try again.'; return; }
+  var s=D(f,d); s.unlocked=true; s.startTs=Date.now(); s.doneParts=0; save(); render(); window.scrollTo(0,0);
+  $('status').textContent='Day '+d+' unlocked. Your 60-minute session has started.';
+}
+app.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]'); if(!t||t.disabled) return;
+  var a=t.dataset.act, f=state.ui.f, d=state.ui.d;
+  if(a==='form'){ if(!(state.who.name.trim()&&state.who.cls.trim())) return; state.ui.view='note'; state.ui.f=+t.dataset.f; state.ui.d=1; confirming=false; render(); window.scrollTo(0,0); }
+  else if(a==='home'){ state.ui.view='home'; confirming=false; render(); window.scrollTo(0,0); }
+  else if(a==='day'){ state.ui.d=+t.dataset.d; confirming=false; render(); window.scrollTo(0,0); }
+  else if(a==='unlock'){ tryUnlock(); }
+  else if(a==='done'){
+    var s=D(f,d), i=s.doneParts; if(i>=parts(f,d).length||!partReady(f,d,i).ok) return;
+    s.doneParts=i+1; save(); render(); goPart(s.doneParts);
+  }
+  else if(a==='ask-check'){ if(elapsed(f,d)<MIN_MS) return; confirming=true; $('checkZone').innerHTML=checkZoneHTML(f,d); }
+  else if(a==='cancel-check'){ confirming=false; $('checkZone').innerHTML=checkZoneHTML(f,d); }
+  else if(a==='do-check'){ if(elapsed(f,d)<MIN_MS) return; finalize(f,d,'manual'); }
+  else if(a==='retry'){ var rs=D(f,d); if(rs.sync) rs.sync.tries=0; send(f,d); }
+  else if(a==='reset-do'){ state=freshState(); resetAsk=false; confirming=false; announced={}; try{ history.replaceState(null,'',location.pathname+location.search); }catch(x){} save(); render(); window.scrollTo(0,0); }
+  else if(a==='reset-cancel'){ resetAsk=false; try{ history.replaceState(null,'',location.pathname+location.search); }catch(x){} render(); }
+});
+app.addEventListener('change',function(e){
+  var t=e.target, f=state.ui.f, d=state.ui.d;
+  if(state.ui.view!=='note'||!running(f,d)) return;
+  var s=D(f,d);
+  if(t.matches('input[data-q]')){ s.answers[t.dataset.q]=+t.value; save(); updateLive(); }
+  else if(t.matches('input[data-check]')){ s.checks[+t.dataset.check]=t.checked; save(); }
+});
+app.addEventListener('input',function(e){
+  var t=e.target, f=state.ui.f, d=state.ui.d;
+  if(t.id==='writing'){
+    if(state.ui.view!=='note'||!running(f,d)) return;
+    D(f,d).writing=t.value; save(); var wc=$('wc'); if(wc) wc.textContent=wordCount(t.value)+' words'; updateLive();
+  } else if(t.id==='nm'||t.id==='cl'){
+    state.who.name=$('nm').value; state.who.cls=$('cl').value; save();
+    var ok=!!(state.who.name.trim()&&state.who.cls.trim());
+    var cards=document.querySelectorAll('.fcard'); for(var i=0;i<cards.length;i++){ if(ok) cards[i].removeAttribute('disabled'); else cards[i].setAttribute('disabled',''); }
+  }
+});
+app.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.id==='code'){ e.preventDefault(); tryUnlock(); } });
+window.addEventListener('hashchange',function(){ if(location.hash==='#reset'){ resetAsk=true; state.ui.view='home'; render(); } });
+
+render();
+})();
+</script>
+</body>
+</html>
