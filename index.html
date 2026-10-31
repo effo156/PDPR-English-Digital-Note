@@ -140,6 +140,11 @@ button,input,textarea{font:inherit;color:inherit}
 .pa3{--a:var(--lime);--b:var(--cyan)}
 .pa4{--a:var(--amber);--b:var(--mag)}
 .part{display:flex;flex-direction:column;gap:14px;scroll-margin-top:150px;outline:none}
+.ins{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:6px 14px 6px 14px;background:rgba(255,184,46,.07);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.ins .lab{font:700 12px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+.ins .goal{margin:0;font-size:17px}
+.ins ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.ins li{padding-left:2px}
 .part-head{display:flex;flex-direction:column;gap:4px}
 .part-head h2{text-transform:uppercase}
 .doneflag{align-self:flex-start;font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dark-ink);background:var(--a);padding:4px 10px;border-radius:99px}
@@ -458,27 +463,27 @@ var F2_CHECKS = [
 var CONTENT = {
  1:{name:'Wild Weather',theme:'Health and Environment',checks:F1_CHECKS,days:{
    1:{parts:[
-     {title:'Weather and disasters words',min:5,html:F1_WORDS,qs:[]},
-     {title:'Past simple and past continuous',min:8,html:F1_GRAMMAR,qs:[]},
-     {title:'Vocabulary check',min:10,qs:F1_VOCAB},
-     {title:'Grammar check',min:15,qs:F1_GRAM}]},
+     {title:'Weather and disasters words',min:5,ins:{"g": "Read and understand the new weather and disaster words.", "s": ["Read every word in the lists, one by one.", "If a word has a small meaning under it, read the meaning. Make sure you understand it.", "Say each word quietly. Choose three words that are new for you and think of a short sentence for each.", "There are no questions in this part. Click DONE when you are ready."]},html:F1_WORDS,qs:[]},
+     {title:'Past simple and past continuous',min:8,ins:{"g": "Learn when to use the past simple and the past continuous.", "s": ["Read the three boxes. The bold words show the grammar.", "Look at the examples. Ask yourself: is the action short and finished, or was it in progress?", "Study the picture of the long action and the short action. This is the pattern you need for the questions.", "There are no questions in this part. Click DONE when you understand the pattern."]},html:F1_GRAMMAR,qs:[]},
+     {title:'Vocabulary check',min:10,ins:{"g": "Show that you know the weather and disaster words.", "s": ["Read each question carefully.", "Choose the best answer. Choose only one answer for each question.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer.", "If you are not sure, look back at Part 1 above."]},qs:F1_VOCAB},
+     {title:'Grammar check',min:15,ins:{"g": "Show that you can use the past simple and the past continuous.", "s": ["Read each sentence. Look for clue words such as when, while and was or were.", "Decide: is it a short action or a long action in progress? Then choose the correct form.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer.", "If you are not sure, look back at Part 2 above."]},qs:F1_GRAM}]},
    2:{parts:[
-     {title:'Sequencing words and model text',min:6,html:F1_SEQ_READ,qs:[]},
-     {title:'Reading check',min:8,qs:F1_READQ},
-     {title:'Sequencing practice',min:6,html:F1_SEQ_INTRO,qs:F1_SEQ},
-     {title:'Write your recount',min:20,html:F1_WRITE,qs:[],writing:true,minWords:30}]}
+     {title:'Sequencing words and model text',min:6,ins:{"g": "Learn the sequencing words and read the model text.", "s": ["Read the four sequencing words. Notice the comma after each one.", "Read the model text A Stormy Day slowly. Read it twice if you need to.", "Find the sequencing words in the text. Find verbs in the past tense, such as was raining and ran.", "You will write a text like this in Part 4. There are no questions here. Click DONE when you have read it."]},html:F1_SEQ_READ,qs:[]},
+     {title:'Reading check',min:8,ins:{"g": "Show that you understand the model text.", "s": ["Read each question carefully.", "Scroll up to Part 1 and find the answer in the model text.", "Choose one answer for each question. Answer every question. You can change an answer before you check. DONE opens when all questions have an answer."]},qs:F1_READQ},
+     {title:'Sequencing practice',min:6,ins:{"g": "Choose the best sequencing word for each sentence.", "s": ["Read the whole story first. Think about the order of events.", "For each gap, choose First, Then, After that or Finally.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer."]},html:F1_SEQ_INTRO,qs:F1_SEQ},
+     {title:'Write your recount',min:20,ins:{"g": "Write your own recount, A Stormy Day. Your teacher will read it.", "s": ["Read the task and the word bank. Plan your two paragraphs in your head.", "Write in the box. Use the past simple, the past continuous and the sequencing words. Aim for 60 to 80 words.", "Read your writing again. Tick the boxes in the checklist only if they are true.", "You need at least 30 words to click DONE."]},html:F1_WRITE,qs:[],writing:true,minWords:30}]}
  }},
  2:{name:'Smart Money',theme:'Consumerism and Financial Awareness',checks:F2_CHECKS,days:{
    1:{parts:[
-     {title:'Money words',min:5,html:F2_WORDS,qs:[]},
-     {title:'Going to, would like and quantifiers',min:8,html:F2_GRAMMAR,qs:[]},
-     {title:'Vocabulary check',min:8,qs:F2_VOCAB},
-     {title:'Grammar check',min:14,qs:F2_GRAM}]},
+     {title:'Money words',min:5,ins:{"g": "Read and understand the new money words.", "s": ["Read every word in the lists, one by one.", "If a word has a small meaning under it, read the meaning. Make sure you understand it.", "Say each word quietly. Choose three words that are new for you and think of a short sentence for each.", "There are no questions in this part. Click DONE when you are ready."]},html:F2_WORDS,qs:[]},
+     {title:'Going to, would like and quantifiers',min:8,ins:{"g": "Learn how to use be going to, would like to and quantifiers.", "s": ["Read the boxes. The bold words show the grammar.", "Look at the examples for plans (be going to), wishes (would like to) and amounts (quantifiers).", "Notice which words go with countable and uncountable nouns.", "There are no questions in this part. Click DONE when you understand the pattern."]},html:F2_GRAMMAR,qs:[]},
+     {title:'Vocabulary check',min:8,ins:{"g": "Show that you know the money words.", "s": ["Read each question carefully.", "Choose the best answer. Choose only one answer for each question.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer.", "If you are not sure, look back at Part 1 above."]},qs:F2_VOCAB},
+     {title:'Grammar check',min:14,ins:{"g": "Show that you can use be going to, would like to and quantifiers.", "s": ["Read each sentence carefully. Look at the clue words.", "Choose the correct form or word.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer.", "If you are not sure, look back at Part 2 above."]},qs:F2_GRAM}]},
    2:{parts:[
-     {title:'Opinion words and model text',min:6,html:F2_MODEL_READ,qs:[]},
-     {title:'Reading check',min:6,qs:F2_READQ},
-     {title:'Opinion and linking words',min:5,html:F2_OPIN_INTRO,qs:F2_OPIN},
-     {title:'Write your plan',min:20,html:F2_WRITE,qs:[],writing:true,minWords:30}]}
+     {title:'Opinion words and model text',min:6,ins:{"g": "Learn the opinion words and read the model text.", "s": ["Read the opinion and linking words in the list.", "Read the model text My Pocket Money Plan slowly. Read it twice if you need to.", "Find the opinion words (I think, In my opinion) and the reasons (because, For example).", "You will write a text like this in Part 4. There are no questions here. Click DONE when you have read it."]},html:F2_MODEL_READ,qs:[]},
+     {title:'Reading check',min:6,ins:{"g": "Show that you understand the model text.", "s": ["Read each question carefully.", "Scroll up to Part 1 and find the answer in the model text.", "Choose one answer for each question. Answer every question. You can change an answer before you check. DONE opens when all questions have an answer."]},qs:F2_READQ},
+     {title:'Opinion and linking words',min:5,ins:{"g": "Choose the best opinion or linking word.", "s": ["Read each sentence. Think about what the writer wants to say.", "Choose the word that fits best: an opinion, a reason or an example.", "Answer every question. You can change an answer before you check. DONE opens when all questions have an answer."]},html:F2_OPIN_INTRO,qs:F2_OPIN},
+     {title:'Write your plan',min:20,ins:{"g": "Write your own plan, My Pocket Money Plan. Your teacher will read it.", "s": ["Read the task and the word bank. Plan your two paragraphs in your head.", "Write in the box. Give your opinion and your reasons. Use be going to, would like to and quantifiers. Aim for 70 to 90 words.", "Read your writing again. Tick the boxes in the checklist only if they are true.", "You need at least 30 words to click DONE."]},html:F2_WRITE,qs:[],writing:true,minWords:30}]}
  }}
 };
 
@@ -719,6 +724,11 @@ function writingHTML(f,d){
   checks.forEach(function(c,i){ h+='<label class="chk"><input type="checkbox" data-check="'+i+'"'+(s.checks[i]?' checked':'')+'><span>'+esc(c)+'</span></label>'; });
   return h+'</div></div>';
 }
+function insHTML(x){
+  var h='<div class="ins"><span class="lab">How to do this part</span><p class="goal"><b>Your job:</b> '+esc(x.g)+'</p><ol>';
+  x.s.forEach(function(t){ h+='<li>'+esc(t)+'</li>'; });
+  return h+'</ol></div>';
+}
 function partsHTML(f,d,review){
   var s=D(f,d), P=parts(f,d), N=P.length, show=review?N:Math.min(s.doneParts+1,N), h='', n=0;
   // question numbering runs across the whole day
@@ -728,6 +738,7 @@ function partsHTML(f,d,review){
     h+='<section class="panel part pa'+(i%5)+'" id="part-'+i+'" tabindex="-1"><div class="part-head">' +
        '<span class="eyebrow">Part '+(i+1)+' of '+N+' &middot; about '+p.min+' min</span><h2>'+esc(p.title)+'</h2>'+
        (!review&&i<s.doneParts?'<span class="doneflag">Done</span>':'')+'</div>';
+    if(p.ins&&!review) h+=insHTML(p.ins);
     if(p.html) h+=p.html;
     p.qs.forEach(function(q,k){ h+=qHTML(q,f,d,review,counts[i]+k+1); });
     if(p.writing&&!review) h+=writingHTML(f,d);
