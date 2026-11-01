@@ -973,7 +973,7 @@ function tryUnlock(){
     if(err||!r){ if(m) m.textContent='No connection. Check your internet and try again.'; return; }
     if(r.ok){ begin(); return; }
     if(r.used){ D(f,d).srvUsed=true; save(); render(); return; }
-    if(m) m.textContent=r.error||'We could not start the session. Try again.';
+    if(m) m.textContent=(r.error||'We could not start the session. Try again.')+(r.detail?' ['+r.detail+']':'');
   });
 }
 app.addEventListener('click',function(e){
